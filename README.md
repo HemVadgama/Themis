@@ -35,17 +35,26 @@ Themis can currently:
 - Generate future ECI position vectors
 - Produce position tables across configurable time horizons
 
-Current output:
+### Phase 2: Conjunction Detection ✅
 
-```text
-Satellite
-Time
-ECI X (km)
-ECI Y (km)
-ECI Z (km)
-```
+- Calculate pairwise satellite distances
+- Detect close approaches below configurable thresholds
+- Scan orbital trajectories across multiple timestamps
+- Export conjunction events to CSV
+- Track closest observed approaches between satellite pairs
 
-This propagation layer forms the foundation for all future conjunction analysis.
+Current demonstration:
+
+- 25 active satellites
+- 24 hour propagation horizon
+- 30 minute timestep
+- 1000 km conjunction threshold
+
+Output:
+
+- Conjunction event reports
+- Closest approach statistics
+- CSV exports for downstream analysis
 
 ---
 
