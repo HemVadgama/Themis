@@ -167,10 +167,10 @@ Planned:
 - [x] Generate future position tables
 
 ### Phase 2 — Conjunction Detection
-- [ ] Pairwise distance calculations
-- [ ] Close approach identification
-- [ ] Configurable warning thresholds
-- [ ] Conjunction event reporting
+- [x] Pairwise distance calculations
+- [x] Close approach identification
+- [x] Configurable warning thresholds
+- [x] Conjunction event reporting
 
 ### Phase 3 — Collision Risk Analysis
 - [ ] Risk scoring
@@ -207,8 +207,6 @@ Themis is still in active development.
 
 Not yet implemented:
 
-- Conjunction detection
-- Collision probability estimation
 - Maneuver planning
 - Agent coordination
 - Visualization dashboard
