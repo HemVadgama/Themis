@@ -91,22 +91,22 @@ Themis begins by solving that problem and gradually expands toward large-scale a
 Current architecture:
 
 ```text
-CelesTrak TLE Data
-          │
-          ▼
-     Data Loader
-          │
-          ▼
-   Satellite Objects
-          │
-          ▼
-    SGP4 Propagator
-          │
-          ▼
- Position Generator
-          │
-          ▼
- Position Tables
+CelesTrak TLE
+      │
+      ▼
+Propagation Engine
+      │
+      ▼
+Position Tables
+      │
+      ▼
+Conjunction Detector
+      │
+      ▼
+Event Reports
+      │
+      ▼
+CSV Export
 ```
 
 Planned architecture:
