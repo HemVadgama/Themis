@@ -1,278 +1,256 @@
 # Themis
 
-An orbital traffic simulation platform for studying satellite propagation, conjunction detection, and autonomous collision avoidance.
+Themis is a Python simulation and benchmarking platform for space traffic management and distributed autonomy research.
 
----
+The project starts with the orbital domain: loading real satellite TLE data, propagating satellite positions, detecting conjunctions, and testing coordination protocols under constrained communication. The long-term goal is to provide a reusable research environment for evaluating how autonomous systems coordinate when safety, latency, bandwidth, and incomplete information matter.
 
-## Overview
+## Project Goals
 
-Themis is a space systems project focused on the growing challenge of orbital congestion.
+Themis is designed to support experiments around:
 
-Modern Earth orbit contains thousands of active satellites and an increasing number of potential conjunction events. As launch rates continue to rise, future space traffic management systems will need to coordinate large numbers of spacecraft efficiently and safely.
+- satellite orbit propagation using real-world TLE data
+- conjunction detection across many satellites and timestamps
+- collision-risk and close-approach analysis
+- deterministic simulation scenarios
+- satellite agent behavior and coordination policies
+- constrained communication networks with latency, packet loss, and bandwidth limits
+- protocol benchmarking for centralized and decentralized autonomy
 
-The long-term goal of Themis is to provide a simulation environment for:
+Space traffic management is the first domain. The architecture is being kept modular enough to support future domains without becoming a generic framework before the satellite use case is solid.
 
-- Orbit propagation
-- Conjunction detection
-- Collision risk assessment
-- Autonomous maneuver planning
-- Multi-agent satellite coordination
-- Space traffic management research
+## Current Capabilities
 
-The project is being developed incrementally, beginning with accurate orbital propagation using real-world satellite data.
+### Orbital Propagation
 
----
+The propagation layer can:
 
-## Current Status
+- load satellite TLE data
+- parse satellites into Skyfield propagatable objects
+- propagate positions using SGP4
+- generate ECI position records with `satellite`, `time`, `x_km`, `y_km`, and `z_km`
+- build position tables across many satellites and timestamps
 
-### Phase 1: Orbital Propagation ✅
+### Conjunction Detection
 
-Themis can currently:
+The detection layer can:
 
-- Load real satellite TLE data
-- Parse TLEs into propagatable satellite objects
-- Propagate satellite positions using SGP4
-- Generate future ECI position vectors
-- Produce position tables across configurable time horizons
+- calculate Euclidean distance between two position records
+- detect satellite pairs within a configurable distance threshold
+- scan position tables across multiple timestamps
+- report conjunction events sorted by time and distance
+- compute closest observed approaches for each satellite pair
+- export structured records to CSV
 
-### Phase 2: Conjunction Detection ✅
+### Protocol Arena Foundation
 
-- Calculate pairwise satellite distances
-- Detect close approaches below configurable thresholds
-- Scan orbital trajectories across multiple timestamps
-- Export conjunction events to CSV
-- Track closest observed approaches between satellite pairs
+The simulation foundation can:
 
-Current demonstration:
+- run deterministic seeded scenarios
+- manage a simulation clock and event ordering
+- create satellite agents with fuel budget, mission priority, risk state, known neighbors, and planned action
+- simulate communication latency, packet loss, bandwidth limits, and queued delivery
+- compare centralized and greedy coordination protocols
+- report metrics for safety, coordination, communication, fuel use, and runtime
 
-- 25 active satellites
-- 24 hour propagation horizon
-- 30 minute timestep
-- 1000 km conjunction threshold
+The protocol arena is intentionally minimal. It is a foundation for future auction, gossip, replay, observability, reinforcement learning, and LLM-agent experiments.
 
-Output:
-
-- Conjunction event reports
-- Closest approach statistics
-- CSV exports for downstream analysis
-
----
-
-## Example Workflow
+## Repository Structure
 
 ```text
-TLE Data
-    ↓
-Satellite Objects
-    ↓
-SGP4 Propagation
-    ↓
-ECI Position Vectors
-    ↓
-Position Tables
+src/
+  propagation/     TLE loading and satellite propagation
+  detection/       Distance calculations and conjunction detection
+  simulation/      Deterministic runtime, scenarios, world state, CLI runner
+  agents/          Satellite agent state and rule-based behavior
+  network/         Message types and constrained network simulator
+  protocols/       Coordination protocol interfaces and implementations
+  metrics/         Safety, efficiency, and run summary metrics
+  utils/           Shared utilities such as CSV export
+
+experiments/       Research scripts and experiment entry points
+docs/              Architecture notes and protocol arena documentation
+tests/             Pytest test suite
+results/           Generated experiment outputs
+data/              Local TLE data cache
 ```
 
----
+## Installation
 
-## Why Themis Exists
+Create and activate a virtual environment, then install the dependencies used by the project.
 
-Space traffic management is becoming increasingly difficult as orbital density rises.
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install skyfield pandas numpy pytest
+```
 
-Before a collision can be predicted or avoided, a system must answer a simpler question:
+The current repository does not yet include a pinned dependency file. Until one is added, the commands above describe the expected local development environment.
 
-> Where will every satellite be?
+## Usage
 
-Themis begins by solving that problem and gradually expands toward large-scale autonomous coordination and collision avoidance.
+Run the conjunction detection demo:
 
----
+```bash
+.venv/bin/python -m src.detection.demo_conjunctions
+```
+
+Run the first protocol arena experiment:
+
+```bash
+.venv/bin/python -m src.simulation.runner --scenario simple_10 --protocol greedy --seed 42
+```
+
+Run the same experiment with centralized coordination:
+
+```bash
+.venv/bin/python -m src.simulation.runner --scenario simple_10 --protocol centralized --seed 42
+```
+
+Write protocol results to JSON:
+
+```bash
+.venv/bin/python -m src.simulation.runner --scenario simple_10 --protocol greedy --seed 42 --output-json results/protocol_run.json
+```
+
+Example protocol summary:
+
+```text
+Protocol: greedy
+Agents: 10
+Seed: 42
+Conjunctions detected: 54
+Coordination attempts: 54
+Maneuvers planned: 60
+Messages sent: 108
+Messages delivered: 94
+Messages dropped: 14
+Estimated fuel used: 60.0
+Unresolved high-risk conjunctions: 0
+Runtime seconds: 0.000502
+```
+
+## Testing
+
+Run the full test suite from the project root:
+
+```bash
+.venv/bin/python -m pytest
+```
+
+The tests cover:
+
+- distance calculation and validation
+- conjunction detection behavior
+- CSV export
+- simulation event ordering
+- deterministic seeded runs
+- network delivery, packet loss, and bandwidth limits
+- centralized and greedy protocol decisions
+- metrics summary output
 
 ## Architecture
 
-Current architecture:
-
-```text
-CelesTrak TLE
-      │
-      ▼
-Propagation Engine
-      │
-      ▼
-Position Tables
-      │
-      ▼
-Conjunction Detector
-      │
-      ▼
-Event Reports
-      │
-      ▼
-CSV Export
-```
-
-Planned architecture:
+The current architecture is organized as a pipeline plus a protocol arena:
 
 ```text
 TLE Data
-     │
-     ▼
+   |
+   v
 Propagation Engine
-     │
-     ▼
+   |
+   v
+Position Tables
+   |
+   v
 Conjunction Detection
-     │
-     ▼
-Risk Assessment
-     │
-     ▼
-Maneuver Planning
-     │
-     ▼
-Satellite Agents
-     │
-     ▼
-Coordination Engine
-     │
-     ▼
-Simulation Dashboard
+   |
+   v
+Simulation World
+   |
+   +--> Satellite Agents
+   +--> Network Simulator
+   +--> Coordination Protocols
+   |
+   v
+Metrics and Results
 ```
 
----
+The orbital propagation and conjunction detection layers remain independent from the protocol arena. This keeps physical state generation separate from coordination logic and makes experiments easier to test.
 
-## Technology Stack
+## Metrics
 
-Current:
+Protocol arena runs currently report:
 
-- Python
-- Skyfield
-- SGP4
-- NumPy
-- Pandas
+- conjunctions detected
+- coordination attempts
+- planned maneuvers
+- messages sent
+- messages delivered
+- messages dropped
+- estimated fuel used
+- unresolved high-risk conjunctions
+- runtime seconds
 
-Planned:
+## Roadmap
 
-- Plotly
-- FastAPI
-- PostgreSQL
-- Agent frameworks
-- Scientific Python ecosystem
+### Completed
 
----
+- TLE loading and satellite propagation
+- position-table generation
+- pairwise distance calculation
+- conjunction event detection
+- closest-approach summaries
+- CSV export utility
+- deterministic simulation core
+- basic satellite agent model
+- constrained network simulator
+- centralized and greedy protocols
+- metrics summary and CLI runner
 
-## Project Roadmap
+### Near-Term Work
 
-### Phase 1 — Propagation
-- [x] Load TLE data
-- [x] Create satellite objects
-- [x] Propagate positions using SGP4
-- [x] Generate future position tables
+- connect protocol arena scenarios to real propagated position tables
+- add richer risk scoring beyond distance thresholding
+- add maneuver cost models and action constraints
+- improve scenario configuration and experiment reproducibility
+- add replayable simulation traces
+- add benchmark comparisons between centralized and decentralized protocols
 
-### Phase 2 — Conjunction Detection
-- [x] Pairwise distance calculations
-- [x] Close approach identification
-- [x] Configurable warning thresholds
-- [x] Conjunction event reporting
+### Later Research Directions
 
-### Protocol Arena — Distributed Autonomy Foundation
-- [x] Deterministic simulation runtime
-- [x] Satellite agent model
-- [x] Constrained network simulator
-- [x] Centralized and greedy coordination protocols
-- [x] Metrics summary and CLI experiment runner
-
-Run the first protocol experiment:
-
-```bash
-python -m src.simulation.runner --scenario simple_10 --protocol greedy --seed 42
-```
-
-See [docs/protocol_arena.md](docs/protocol_arena.md) for details.
-
-### Phase 3 — Collision Risk Analysis
-- [ ] Risk scoring
-- [ ] Orbital density studies
-- [ ] Statistical conjunction analysis
-
-### Phase 4 — Autonomous Coordination
-- [ ] Satellite agents
-- [ ] Maneuver negotiation
-- [ ] Conflict resolution strategies
-
-### Phase 5 — Large Scale Simulation
-- [ ] Thousands of satellites
-- [ ] Performance benchmarking
-- [ ] Coordination experiments
-
----
-
-## Future Research Questions
-
-Themis is intended to investigate questions such as:
-
-- How does conjunction frequency change as orbital density increases?
-- Can decentralized coordination outperform centralized control?
-- How many maneuvers can be avoided through negotiation?
-- What tradeoffs exist between fuel usage and collision risk?
-- How well do different coordination strategies scale?
-
----
+- auction-based coordination
+- gossip-based coordination
+- fault-injection studies
+- large-scale constellation experiments
+- reinforcement learning policies
+- LLM-assisted agents or operators
+- visualization and dashboard tooling
 
 ## Current Limitations
 
-Themis is still in active development.
+Themis is still an active research codebase.
 
-Not yet implemented:
+Current limitations include:
 
-- Maneuver planning
-- Agent coordination
-- Visualization dashboard
+- conjunction risk is distance-threshold based, not probabilistic
+- maneuver planning is represented as a planned action, not physical orbit modification
+- protocol arena scenarios currently use deterministic synthetic positions
+- communication models are simple latency/loss/bandwidth abstractions
+- no dashboard or interactive visualization is included
+- no reinforcement learning or LLM agents are included
 
-Current propagation accuracy is dependent on publicly available TLE data and standard SGP4 modeling assumptions.
+Propagation accuracy depends on public TLE data quality and the standard SGP4 model.
 
----
+## Documentation
 
-## Example Usage
+Additional project notes:
 
-```python
-from themis.propagator import get_position
-
-position = get_position(satellite)
-
-print(position)
-```
-
-Example output:
-
-```python
-{
-    "satellite": 'CALSPHERE1'
-    'time': '2026-06-03T22:59:26Z'
-    "x_km": -5231.8,
-    "y_km": 1244.3,
-    "z_km": 4087.6
-}
-```
-
----
+- [Protocol Arena](docs/protocol_arena.md)
+- [Architecture](docs/architecture.md)
+- [Experiments](docs/experiments.md)
+- [Roadmap](docs/roadmap.md)
+- [Vision](docs/vision.md)
 
 ## Development Philosophy
 
-Themis is being developed as an engineering and research project rather than a simple software application.
-
-The project emphasizes:
-
-- Measurable experiments
-- System architecture
-- Scientific reproducibility
-- Technical documentation
-- Performance evaluation
-
----
-
-## Author
-
-Hem Vadgama
-
-Computer Engineering
-Penn State University (Schreyer Honors College)
-
-Building systems at the intersection of space, simulation, autonomy, and software engineering.
+Themis is being built as a research and engineering platform, not a polished application. The priority is deterministic, testable, modular simulation code that can grow into more advanced autonomy experiments without obscuring the orbital mechanics and safety assumptions underneath.
