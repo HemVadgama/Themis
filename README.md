@@ -172,6 +172,21 @@ Planned:
 - [x] Configurable warning thresholds
 - [x] Conjunction event reporting
 
+### Protocol Arena — Distributed Autonomy Foundation
+- [x] Deterministic simulation runtime
+- [x] Satellite agent model
+- [x] Constrained network simulator
+- [x] Centralized and greedy coordination protocols
+- [x] Metrics summary and CLI experiment runner
+
+Run the first protocol experiment:
+
+```bash
+python -m src.simulation.runner --scenario simple_10 --protocol greedy --seed 42
+```
+
+See [docs/protocol_arena.md](docs/protocol_arena.md) for details.
+
 ### Phase 3 — Collision Risk Analysis
 - [ ] Risk scoring
 - [ ] Orbital density studies
