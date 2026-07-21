@@ -7,13 +7,14 @@ from src.network.faults import NetworkFaultConfig
 @dataclass
 class NetworkSimulator:
     config: NetworkFaultConfig
+    random_source: object | None = None
     queued_messages: list = field(default_factory=list)
     messages_sent: int = 0
     messages_delivered: int = 0
     messages_dropped: int = 0
 
     def __post_init__(self):
-        self._random = random.Random(self.config.seed)
+        self._random = self.random_source or random.Random(self.config.seed)
         self._send_counts = {}
 
     def send(self, message, current_time):

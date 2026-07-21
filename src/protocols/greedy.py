@@ -51,5 +51,35 @@ class GreedyProtocol:
 
         return decision
 
+    def propose_maneuvers(self, context):
+        decision = ProtocolDecision(coordination_attempts=len(context.risk_events))
+        proposed_pairs = set()
+
+        for view in context.agent_views.values():
+            for risk_event_id, risk_event in sorted(view.known_risk_events.items()):
+                if risk_event_id in proposed_pairs:
+                    continue
+                if view.risk_state != "HIGH" or view.fuel_budget <= 0:
+                    continue
+                if view.agent_id not in risk_event.participants():
+                    continue
+
+                proposal = context.maneuver_generator.best_candidate(
+                    view.agent_id,
+                    risk_event,
+                    context.trajectories,
+                    context.current_time,
+                    self.name,
+                    context.reassessment_horizon_steps,
+                )
+                if proposal is not None:
+                    decision.maneuver_proposals.append(proposal)
+                    proposed_pairs.add(risk_event_id)
+
+        if not decision.maneuver_proposals and context.risk_events:
+            decision.unresolved_conjunctions = len(context.risk_events)
+
+        return decision
+
 
 # TODO: Add auction and gossip protocols once replay and richer fault injection exist.

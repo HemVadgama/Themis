@@ -22,13 +22,14 @@ class SatelliteAgent:
 
     def update_position(self, position):
         self.state.position = position
+        self.state.last_observation_time = position.get("time")
 
     def remember_neighbor(self, agent_id):
         if agent_id != self.agent_id:
             self.state.known_neighbors.add(agent_id)
 
     def plan_maneuver(self):
-        if self.state.fuel_budget <= 0:
+        if self.state.fuel_budget - self.state.reserved_fuel <= 0:
             self.state.planned_action = "NONE"
             return False
 
@@ -37,3 +38,6 @@ class SatelliteAgent:
 
     def clear_plan(self):
         self.state.planned_action = "NONE"
+
+    def available_fuel(self):
+        return self.state.fuel_budget - self.state.reserved_fuel

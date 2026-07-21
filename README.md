@@ -51,8 +51,11 @@ The simulation foundation can:
 - simulate communication latency, packet loss, bandwidth limits, and queued delivery
 - compare centralized and greedy coordination protocols
 - report metrics for safety, coordination, communication, fuel use, and runtime
+- run a closed-loop collision-avoidance benchmark from risk detection through maneuver proposal, validation, execution, trajectory update, reassessment, secondary-risk detection, and trace export
 
-The protocol arena is intentionally minimal. It is a foundation for future auction, gossip, replay, observability, reinforcement learning, and LLM-agent experiments.
+The protocol arena is intentionally minimal. It is a foundation for future auction, gossip, observability, reinforcement learning, and LLM-agent experiments.
+
+Themis is experimental research software. It is not intended for operational conjunction assessment, spacecraft command, or flight-safety decisions.
 
 ## Repository Structure
 
@@ -98,6 +101,19 @@ Run the first protocol arena experiment:
 
 ```bash
 .venv/bin/python -m src.simulation.runner --scenario simple_10 --protocol greedy --seed 42
+```
+
+Run a closed-loop collision-avoidance scenario:
+
+```bash
+.venv/bin/python -m src.simulation.runner run --scenario closed_loop_resolved --protocol centralized --seed 42
+```
+
+Export and inspect a closed-loop trace:
+
+```bash
+.venv/bin/python -m src.simulation.runner run --scenario closed_loop_resolved --protocol centralized --seed 42 --output results/closed_loop_run.json
+.venv/bin/python -m src.simulation.runner replay results/closed_loop_run.json
 ```
 
 Run the same experiment with centralized coordination:
@@ -177,17 +193,26 @@ Metrics and Results
 
 The orbital propagation and conjunction detection layers remain independent from the protocol arena. This keeps physical state generation separate from coordination logic and makes experiments easier to test.
 
+Closed-loop benchmark scenarios currently use a local linear trajectory model for simulated post-maneuver truth. Original catalog or scenario trajectories are copied before execution and are not mutated. Agent beliefs live on agent state; protocols receive restricted views; safety validation owns admissibility; execution owns trajectory updates and resource accounting.
+
 ## Metrics
 
 Protocol arena runs currently report:
 
+- original conjunctions
+- resolved, unresolved, worsened, and secondary conjunctions
 - conjunctions detected
 - coordination attempts
-- planned maneuvers
+- successful agreements, timeouts, duplicate proposals, and fallback activations
+- proposed, planned, and executed maneuvers
 - messages sent
 - messages delivered
 - messages dropped
+- messages delayed beyond usefulness
 - estimated fuel used
+- total delta-v used
+- per-agent maneuver burden
+- remaining fuel by agent
 - unresolved high-risk conjunctions
 - runtime seconds
 
@@ -206,6 +231,7 @@ Protocol arena runs currently report:
 - constrained network simulator
 - centralized and greedy protocols
 - metrics summary and CLI runner
+- closed-loop maneuver proposal, validation, execution, risk reassessment, secondary-risk detection, and trace inspection
 
 ### Near-Term Work
 
@@ -213,7 +239,7 @@ Protocol arena runs currently report:
 - add richer risk scoring beyond distance thresholding
 - add maneuver cost models and action constraints
 - improve scenario configuration and experiment reproducibility
-- add replayable simulation traces
+- add full replay/state reconstruction beyond textual trace inspection
 - add benchmark comparisons between centralized and decentralized protocols
 
 ### Later Research Directions
@@ -233,9 +259,10 @@ Themis is still an active research codebase.
 Current limitations include:
 
 - conjunction risk is distance-threshold based, not probabilistic
-- maneuver planning is represented as a planned action, not physical orbit modification
-- protocol arena scenarios currently use deterministic synthetic positions
+- closed-loop maneuver execution uses a simplified linear trajectory model, not high-fidelity orbital dynamics
+- protocol arena scenarios currently use deterministic synthetic trajectories
 - communication models are simple latency/loss/bandwidth abstractions
+- replay currently inspects trace events rather than reconstructing every state object
 - no dashboard or interactive visualization is included
 - no reinforcement learning or LLM agents are included
 
