@@ -1,33 +1,34 @@
-# Experiment 1
+# Experiments and batch runs
 
-Configuration:
+Run one configuration with `themis run CONFIG`. The run ID combines the experiment name, protocol, seed, and a SHA-256 prefix of the resolved configuration. Repeating an identical experiment therefore addresses the same run directory.
 
-- 25 satellites
-- 24 hour horizon
-- 30 minute timestep
-- 1000 km threshold
+`themis compare CONFIG --protocol centralized --protocol greedy` runs identical initial conditions under each listed protocol and writes `comparison.csv` and `comparison.json` alongside the individual run directories.
 
-Questions:
+## Sweeps
 
-- How many conjunctions occur?
-- Which satellites approach most frequently?
-- How does threshold affect results?
+A sweep references a base experiment and defines a Cartesian grid:
 
-Results:
+```toml
+[sweep]
+base_config = "network-degradation.toml"
 
-- Satellites: 25
-- Timestamps: 49
-- Threshold: 1000.0 km
-- Conjunction events: 13
-- Saved: results/conjunctions.csv
-- First 10 events:
-- 2026-06-18T19:28:23Z | CALSPHERE 2 / RIGIDSPHERE 2 (LCS 4) | 913.145 km
-- 2026-06-18T21:58:23Z | CALSPHERE 1 / UOSAT 2 (UO-11) | 597.830 km
-- 2026-06-18T23:28:23Z | HST / STARLETTE | 922.486 km
-- 2026-06-19T00:28:23Z | RIGIDSPHERE 2 (LCS 4) / TEMPSAT 1 | 958.988 km
-- 2026-06-19T01:28:23Z | CALSPHERE 4A / OPS 5712 (P/L 160) | 861.562 km
-- 2026-06-19T05:58:23Z | CALSPHERE 4A / UOSAT 2 (UO-11) | 683.177 km
-- 2026-06-19T05:58:23Z | SURCAL 159 / UOSAT 2 (UO-11) | 871.879 km
-- 2026-06-19T09:58:23Z | OPS 5712 (P/L 160) / TEMPSAT 1 | 710.793 km
-- 2026-06-19T11:28:23Z | CALSPHERE 2 / CALSPHERE 4A | 579.158 km
-- 2026-06-19T14:28:23Z | AJISAI (EGS) / CALSPHERE 4A | 553.781 km
+[sweep.grid]
+"protocol.name" = ["centralized", "greedy"]
+"network.packet_loss_rate" = [0.0, 0.5, 1.0]
+"network.latency_steps" = [0, 1, 3]
+"experiment.seed" = [1, 2]
+```
+
+Run `themis sweep SWEEP.toml`. Execution is intentionally sequential and easy to inspect. Every cell has normal run artifacts. The sweep writes `aggregate.csv` and `aggregate.json`; a failed cell is recorded and later cells still run. Existing run IDs with a `summary.json` are treated as completed, making reruns resumable.
+
+Resumability assumes an existing summary is complete and was not manually edited. Delete or move that individual run directory to force recomputation.
+
+## Artifact contract
+
+- `config.toml`: complete resolved input and the primary reproduction record.
+- `summary.json`: identifiers, final outcome, and aggregate metrics.
+- `metrics.csv`: one row suitable for dataframe ingestion.
+- `events.jsonl`: ordered lifecycle events with time, sequence, type, and payload.
+- `metadata.json`: Themis version, git commit where available, creation timestamp, determinism note, and user metadata.
+
+Output directories are user-selected. Themis creates files below that directory but does not delete old data or invoke a shell.

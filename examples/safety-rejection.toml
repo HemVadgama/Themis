@@ -1,0 +1,12 @@
+[experiment]
+name = "safety-rejection"
+seed = 42
+
+[scenario]
+preset = "closed_loop_insufficient_fuel"
+
+[protocol]
+name = "centralized"
+
+[output]
+directory = "../results"

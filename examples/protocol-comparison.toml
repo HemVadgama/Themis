@@ -1,0 +1,16 @@
+[experiment]
+name = "protocol-comparison"
+seed = 42
+
+[scenario]
+preset = "closed_loop_protocol_difference"
+
+[protocol]
+name = "centralized"
+
+[network]
+latency_steps = 0
+packet_loss_rate = 0.0
+
+[output]
+directory = "../results"

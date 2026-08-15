@@ -17,20 +17,13 @@ from src.network.faults import NetworkFaultConfig
 from src.network.message import Message, MessageType
 from src.network.simulator import NetworkSimulator
 from src.protocols.base import ProtocolContext, make_agent_view
-from src.protocols.centralized import CentralizedProtocol
-from src.protocols.greedy import GreedyProtocol
+from src.protocols.registry import PROTOCOLS, make_protocol
 from src.risk.events import RiskEvent
 from src.risk.reassessment import evaluate_maneuver_outcome
 from src.simulation.scenario import ScenarioConfig, load_scenario
 from src.simulation.trace import SimulationTrace, format_trace_summary
 from src.simulation.world import WorldState
 from src.trajectory.linear import LinearTrajectory
-
-
-PROTOCOLS = {
-    "centralized": CentralizedProtocol,
-    "greedy": GreedyProtocol,
-}
 
 
 def build_agents(config, random_source=None):
@@ -99,12 +92,6 @@ def build_position_records(world, step):
 
 def build_position_records_from_trajectories(trajectories, step):
     return [trajectories[agent_id].position_record_at(step) for agent_id in sorted(trajectories)]
-
-
-def make_protocol(protocol_name):
-    if protocol_name not in PROTOCOLS:
-        raise ValueError(f"Unknown protocol '{protocol_name}'")
-    return PROTOCOLS[protocol_name]()
 
 
 def run_scenario(config, protocol_name):
@@ -270,6 +257,10 @@ def _finalize_metrics(metrics, world, outcomes, started_at, config):
     metrics.messages_delayed_beyond_usefulness = len(
         [event for event in world.trace.events if event.event_type == "MESSAGE_DELAYED_BEYOND_USEFULNESS"]
     )
+    if world.delivered_messages:
+        metrics.average_communication_latency_steps = sum(
+            message.deliver_at - message.sent_time for message in world.delivered_messages
+        ) / len(world.delivered_messages)
     metrics.remaining_fuel_by_agent = {
         agent_id: agent.state.fuel_budget for agent_id, agent in sorted(world.agents.items())
     }
@@ -375,6 +366,7 @@ def run_closed_loop_scenario(config, protocol_name):
 
         if not validation.valid:
             metrics.safety_validation_failures += 1
+            metrics.maneuvers_rejected += 1
             metrics.unresolved_conjunctions += 1
             world.maneuvers[proposal.maneuver_id] = proposal
             continue
@@ -396,6 +388,7 @@ def run_closed_loop_scenario(config, protocol_name):
         trace.record(world.current_time, "MANEUVER_EXECUTED" if execution["executed"] else "MANEUVER_FAILED", {**execution, "maneuver": proposal.to_dict()})
 
         if not execution["executed"]:
+            metrics.maneuvers_failed += 1
             metrics.unresolved_conjunctions += 1
             continue
 
@@ -455,7 +448,9 @@ def run_closed_loop_scenario(config, protocol_name):
         "metrics": metrics.to_dict(include_extended=True),
         "trace": trace.to_dict(),
     }
-    trace.record(config.duration_steps, "RUN_COMPLETED", {"metrics": metrics.to_dict(include_extended=True)})
+    completed_metrics = metrics.to_dict(include_extended=True)
+    completed_metrics.pop("runtime_seconds", None)
+    trace.record(config.duration_steps, "RUN_COMPLETED", {"metrics": completed_metrics})
     result["trace"] = trace.to_dict()
     return result
 

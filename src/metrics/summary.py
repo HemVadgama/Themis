@@ -21,10 +21,13 @@ class MetricsSummary:
     planned_maneuvers: int = 0
     maneuvers_proposed: int = 0
     maneuvers_executed: int = 0
+    maneuvers_rejected: int = 0
+    maneuvers_failed: int = 0
     messages_sent: int = 0
     messages_delivered: int = 0
     messages_dropped: int = 0
     messages_delayed_beyond_usefulness: int = 0
+    average_communication_latency_steps: float | None = None
     estimated_fuel_used: float = 0.0
     total_delta_v_used_km_per_step: float = 0.0
     delta_v_per_resolved_conjunction: float | None = None

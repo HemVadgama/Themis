@@ -1,283 +1,102 @@
 # Themis
 
-Themis is a Python simulation and benchmarking platform for space traffic management and distributed autonomy research.
+Themis is a deterministic experimental testbed for comparing autonomous and distributed coordination strategies under configurable communication, execution, resource, and safety constraints. Its first benchmark domain is simplified space traffic coordination.
 
-The project starts with the orbital domain: loading real satellite TLE data, propagating satellite positions, detecting conjunctions, and testing coordination protocols under constrained communication. The long-term goal is to provide a reusable research environment for evaluating how autonomous systems coordinate when safety, latency, bandwidth, and incomplete information matter.
+It helps researchers ask questions such as: how does a local protocol behave when risk alerts are late or lost, how does it compare with a centralized policy on the same initial state, and which proposed actions an independent safety layer rejects?
 
-## Project Goals
+Themis is **not** an operational conjunction-assessment system, orbit-determination tool, maneuver planner, spacecraft controller, or source of flight-safety advice. The closed-loop examples use linear benchmark trajectories and threshold-based risk. See [assumptions and limitations](docs/assumptions-and-limitations.md).
 
-Themis is designed to support experiments around:
+## Five-minute quick start
 
-- satellite orbit propagation using real-world TLE data
-- conjunction detection across many satellites and timestamps
-- collision-risk and close-approach analysis
-- deterministic simulation scenarios
-- satellite agent behavior and coordination policies
-- constrained communication networks with latency, packet loss, and bandwidth limits
-- protocol benchmarking for centralized and decentralized autonomy
-
-Space traffic management is the first domain. The architecture is being kept modular enough to support future domains without becoming a generic framework before the satellite use case is solid.
-
-## Current Capabilities
-
-### Orbital Propagation
-
-The propagation layer can:
-
-- load satellite TLE data
-- parse satellites into Skyfield propagatable objects
-- propagate positions using SGP4
-- generate ECI position records with `satellite`, `time`, `x_km`, `y_km`, and `z_km`
-- build position tables across many satellites and timestamps
-
-### Conjunction Detection
-
-The detection layer can:
-
-- calculate Euclidean distance between two position records
-- detect satellite pairs within a configurable distance threshold
-- scan position tables across multiple timestamps
-- report conjunction events sorted by time and distance
-- compute closest observed approaches for each satellite pair
-- export structured records to CSV
-
-### Protocol Arena Foundation
-
-The simulation foundation can:
-
-- run deterministic seeded scenarios
-- manage a simulation clock and event ordering
-- create satellite agents with fuel budget, mission priority, risk state, known neighbors, and planned action
-- simulate communication latency, packet loss, bandwidth limits, and queued delivery
-- compare centralized and greedy coordination protocols
-- report metrics for safety, coordination, communication, fuel use, and runtime
-- run a closed-loop collision-avoidance benchmark from risk detection through maneuver proposal, validation, execution, trajectory update, reassessment, secondary-risk detection, and trace export
-
-The protocol arena is intentionally minimal. It is a foundation for future auction, gossip, observability, reinforcement learning, and LLM-agent experiments.
-
-Themis is experimental research software. It is not intended for operational conjunction assessment, spacecraft command, or flight-safety decisions.
-
-## Repository Structure
-
-```text
-src/
-  propagation/     TLE loading and satellite propagation
-  detection/       Distance calculations and conjunction detection
-  simulation/      Deterministic runtime, scenarios, world state, CLI runner
-  agents/          Satellite agent state and rule-based behavior
-  network/         Message types and constrained network simulator
-  protocols/       Coordination protocol interfaces and implementations
-  metrics/         Safety, efficiency, and run summary metrics
-  utils/           Shared utilities such as CSV export
-
-experiments/       Research scripts and experiment entry points
-docs/              Architecture notes and protocol arena documentation
-tests/             Pytest test suite
-results/           Generated experiment outputs
-data/              Local TLE data cache
-```
-
-## Installation
-
-Create and activate a virtual environment, then install the dependencies used by the project.
+Python 3.11 or 3.12 is supported.
 
 ```bash
-python -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
-pip install skyfield pandas numpy pytest
+python -m pip install ".[dev]"
+themis run examples/basic.toml
 ```
 
-The current repository does not yet include a pinned dependency file. Until one is added, the commands above describe the expected local development environment.
-
-## Usage
-
-Run the conjunction detection demo:
-
-```bash
-.venv/bin/python -m src.detection.demo_conjunctions
-```
-
-Run the first protocol arena experiment:
-
-```bash
-.venv/bin/python -m src.simulation.runner --scenario simple_10 --protocol greedy --seed 42
-```
-
-Run a closed-loop collision-avoidance scenario:
-
-```bash
-.venv/bin/python -m src.simulation.runner run --scenario closed_loop_resolved --protocol centralized --seed 42
-```
-
-Export and inspect a closed-loop trace:
-
-```bash
-.venv/bin/python -m src.simulation.runner run --scenario closed_loop_resolved --protocol centralized --seed 42 --output results/closed_loop_run.json
-.venv/bin/python -m src.simulation.runner replay results/closed_loop_run.json
-```
-
-Run the same experiment with centralized coordination:
-
-```bash
-.venv/bin/python -m src.simulation.runner --scenario simple_10 --protocol centralized --seed 42
-```
-
-Write protocol results to JSON:
-
-```bash
-.venv/bin/python -m src.simulation.runner --scenario simple_10 --protocol greedy --seed 42 --output-json results/protocol_run.json
-```
-
-Example protocol summary:
+A successful run prints a concise safety, communication, and maneuver summary:
 
 ```text
-Protocol: greedy
-Agents: 10
-Seed: 42
-Conjunctions detected: 54
-Coordination attempts: 54
-Maneuvers planned: 60
-Messages sent: 108
-Messages delivered: 94
-Messages dropped: 14
-Estimated fuel used: 60.0
-Unresolved high-risk conjunctions: 0
-Runtime seconds: 0.000502
+Run: basic-conjunction-centralized-s42-9cd2d4016a
+Scenario / protocol / seed: basic-conjunction / centralized / 42
+Outcome: resolved
+Safety: 1 initial, 1 resolved, 0 unresolved, 0 validator rejection(s)
+Communication: 2 sent, 2 delivered, 0 dropped
+Maneuvers: 1 executed, 80.0 km/step delta-v proxy
+Artifacts: .../results/basic-conjunction-centralized-s42-9cd2d4016a
 ```
 
-## Testing
+That directory contains the resolved `config.toml`, `summary.json`, one-row `metrics.csv`, ordered `events.jsonl`, and version/provenance `metadata.json`. The run ID is derived from the resolved configuration.
 
-Run the full test suite from the project root:
+## What to run next
+
+Edit a TOML file to change the seed, protocol, latency, packet loss, maneuver bounds, thresholds, or initial linear states—no source edit is required.
 
 ```bash
-.venv/bin/python -m pytest
+# Compare protocols on identical initial conditions
+themis compare examples/protocol-comparison.toml \
+  --protocol centralized --protocol greedy
+
+# Run a protocol × loss × latency × seed grid
+themis sweep examples/network-sweep.toml
+
+# Validate without running, or inspect an event stream
+themis validate examples/basic.toml
+themis replay results/<run-id>
 ```
 
-The tests cover:
-
-- distance calculation and validation
-- conjunction detection behavior
-- CSV export
-- simulation event ordering
-- deterministic seeded runs
-- network delivery, packet loss, and bandwidth limits
-- centralized and greedy protocol decisions
-- metrics summary output
+See every curated example and its expected qualitative outcome in [examples/README.md](examples/README.md).
 
 ## Architecture
 
-The current architecture is organized as a pipeline plus a protocol arena:
-
 ```text
-TLE Data
-   |
-   v
-Propagation Engine
-   |
-   v
-Position Tables
-   |
-   v
-Conjunction Detection
-   |
-   v
-Simulation World
-   |
-   +--> Satellite Agents
-   +--> Network Simulator
-   +--> Coordination Protocols
-   |
-   v
-Metrics and Results
+Scenario / linear initial truth
+              ↓
+       physical WorldState
+              ↓
+    conjunction detection
+              ↓
+ risk alerts through NetworkSimulator
+              ↓
+ restricted ProtocolContext (agent views)
+              ↓
+       maneuver proposal
+              ↓
+ independent ManeuverValidator
+              ↓
+        ManeuverExecutor
+              ↓
+ world trajectory update + reassessment
+              ↓
+       metrics + event trace
 ```
 
-The orbital propagation and conjunction detection layers remain independent from the protocol arena. This keeps physical state generation separate from coordination logic and makes experiments easier to test.
+Physical truth, agent-local beliefs, protocol decisions, safety validation, and execution have separate owners. Protocols receive copied trajectories and frozen agent views; they propose actions but cannot execute them. The detailed rationale and state ownership are in [architecture.md](docs/architecture.md).
 
-Closed-loop benchmark scenarios currently use a local linear trajectory model for simulated post-maneuver truth. Original catalog or scenario trajectories are copied before execution and are not mutated. Agent beliefs live on agent state; protocols receive restricted views; safety validation owns admissibility; execution owns trajectory updates and resource accounting.
+## Create and reproduce an experiment
 
-## Metrics
+Copy [examples/basic.toml](examples/basic.toml), give the experiment a name, and change its tables. The configuration is strictly validated before the simulation starts. Relative output paths are resolved relative to the configuration file. The saved resolved config can itself be passed back to `themis run`.
 
-Protocol arena runs currently report:
+Identical resolved configuration, seed, and Themis version produce identical model decisions and outcomes. Wall-clock runtime and artifact creation timestamp are observational and therefore excluded from that guarantee. Commit and package version are recorded when available.
 
-- original conjunctions
-- resolved, unresolved, worsened, and secondary conjunctions
-- conjunctions detected
-- coordination attempts
-- successful agreements, timeouts, duplicate proposals, and fallback activations
-- proposed, planned, and executed maneuvers
-- messages sent
-- messages delivered
-- messages dropped
-- messages delayed beyond usefulness
-- estimated fuel used
-- total delta-v used
-- per-agent maneuver burden
-- remaining fuel by agent
-- unresolved high-risk conjunctions
-- runtime seconds
+The complete schema is in [configuration.md](docs/configuration.md), metric definitions are in [metrics.md](docs/metrics.md), and batch behavior is in [experiments.md](docs/experiments.md).
 
-## Roadmap
+## Add a protocol
 
-### Completed
+Implement the narrow `CoordinationProtocol` contract, operate only on `ProtocolContext`, and register the class explicitly in `src/protocols/registry.py`. A minimal implementation lives in `src/protocols/example.py`; the lifecycle, determinism rules, and test pattern are documented in [protocols.md](docs/protocols.md).
 
-- TLE loading and satellite propagation
-- position-table generation
-- pairwise distance calculation
-- conjunction event detection
-- closest-approach summaries
-- CSV export utility
-- deterministic simulation core
-- basic satellite agent model
-- constrained network simulator
-- centralized and greedy protocols
-- metrics summary and CLI runner
-- closed-loop maneuver proposal, validation, execution, risk reassessment, secondary-risk detection, and trace inspection
+## Development and deeper documentation
 
-### Near-Term Work
-
-- connect protocol arena scenarios to real propagated position tables
-- add richer risk scoring beyond distance thresholding
-- add maneuver cost models and action constraints
-- improve scenario configuration and experiment reproducibility
-- add full replay/state reconstruction beyond textual trace inspection
-- add benchmark comparisons between centralized and decentralized protocols
-
-### Later Research Directions
-
-- auction-based coordination
-- gossip-based coordination
-- fault-injection studies
-- large-scale constellation experiments
-- reinforcement learning policies
-- LLM-assisted agents or operators
-- visualization and dashboard tooling
-
-## Current Limitations
-
-Themis is still an active research codebase.
-
-Current limitations include:
-
-- conjunction risk is distance-threshold based, not probabilistic
-- closed-loop maneuver execution uses a simplified linear trajectory model, not high-fidelity orbital dynamics
-- protocol arena scenarios currently use deterministic synthetic trajectories
-- communication models are simple latency/loss/bandwidth abstractions
-- replay currently inspects trace events rather than reconstructing every state object
-- no dashboard or interactive visualization is included
-- no reinforcement learning or LLM agents are included
-
-Propagation accuracy depends on public TLE data quality and the standard SGP4 model.
-
-## Documentation
-
-Additional project notes:
-
-- [Protocol Arena](docs/protocol_arena.md)
-- [Architecture](docs/architecture.md)
-- [Experiments](docs/experiments.md)
+- [Getting started](docs/getting-started.md)
+- [Configuration reference](docs/configuration.md)
+- [Experiment and sweep guide](docs/experiments.md)
+- [Protocol authoring](docs/protocols.md)
+- [Metrics reference](docs/metrics.md)
+- [Assumptions and limitations](docs/assumptions-and-limitations.md)
+- [Contributor guide](CONTRIBUTING.md)
 - [Roadmap](docs/roadmap.md)
-- [Vision](docs/vision.md)
 
-## Development Philosophy
-
-Themis is being built as a research and engineering platform, not a polished application. The priority is deterministic, testable, modular simulation code that can grow into more advanced autonomy experiments without obscuring the orbital mechanics and safety assumptions underneath.
+Run `themis --help`, `themis run --help`, or the full test suite with `python -m pytest`.

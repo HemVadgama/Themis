@@ -1,5 +1,8 @@
-# Themis
-Themis explores whether autonomous multi-agent coordination can reduce orbital collision risk compared to traditional reactive conjunction avoidance.
+# Themis vision
+
+Themis explores how autonomous multi-agent coordination strategies behave in a
+controlled, simplified space-traffic benchmark. It compares modeled outcomes; it
+does not establish reductions in real orbital collision risk.
 
 ## MVP
 Satellite Data
@@ -8,8 +11,11 @@ Satellite Data
 → Agent Negotiation
 → Metrics
 
-## Research Question
-Can autonomous negotiation between satellites reduce maneuver count and fuel consumption while maintaining safety?
+## Research question
+
+How do coordination protocols compare on modeled conjunction resolution,
+maneuver-resource proxies, and communication outcomes under controlled benchmark
+conditions?
 
 ## First Milestone
 Predict the future position of a real satellite using TLE data.

@@ -1,0 +1,37 @@
+name: Experiment or modeling feedback
+description: Report installation problems, incorrect assumptions, or protocol, metric, and scenario needs.
+title: "[Feedback]: "
+labels: [feedback]
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Installation
+        - Modeling or scientific assumption
+        - Protocol request
+        - Metric request
+        - Scenario or input need
+        - Incorrect behavior
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Research question or problem
+      description: What were you trying to learn or run?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction details
+      description: Include commands, Themis version, resolved config, expected result, and actual result.
+    validations:
+      required: true
+  - type: textarea
+    id: assumptions
+    attributes:
+      label: Assumption or capability gap
+      description: Which model assumption or missing capability mattered?

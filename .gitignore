@@ -19,6 +19,8 @@ env/
 
 # Generated results
 results/
+build/
+*.egg-info/
 
 # OS files
 .DS_Store

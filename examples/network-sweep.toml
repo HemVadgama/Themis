@@ -1,0 +1,8 @@
+[sweep]
+base_config = "network-degradation.toml"
+
+[sweep.grid]
+"protocol.name" = ["centralized", "greedy"]
+"network.packet_loss_rate" = [0.0, 0.5, 1.0]
+"network.latency_steps" = [0, 1, 3]
+"experiment.seed" = [1, 2]
