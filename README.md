@@ -100,3 +100,7 @@ Implement the narrow `CoordinationProtocol` contract, operate only on `ProtocolC
 - [Roadmap](docs/roadmap.md)
 
 Run `themis --help`, `themis run --help`, or the full test suite with `python -m pytest`.
+
+## License
+
+Themis is available under the [Apache License 2.0](LICENSE).
