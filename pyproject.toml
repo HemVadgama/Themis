@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "themis-testbed"
-version = "0.1.1"
-description = "Deterministic testbed for constrained autonomous coordination experiments"
+version = "0.2.0"
+description = "Deterministic experimentation framework for networked autonomous coordination"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {file = "LICENSE"}
@@ -27,6 +27,9 @@ themis = "src.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["src*"]
+
+[tool.setuptools.package-data]
+"src.viewer" = ["static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

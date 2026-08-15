@@ -31,5 +31,5 @@ The network and executor use controlled `random.Random` instances seeded from th
 - Closed-loop config supports built-in or explicit linear initial states, not an arbitrary TLE/source-data path. The optional TLE demo is separate.
 - Replay is ordered trace inspection, not state rehydration.
 - Sweeps are local and sequential. There is no parallel scheduler or statistical analysis layer.
-- There is no visualization UI. Saved artifacts are suitable for a future decoupled viewer.
-- Version 0.1 is an alpha public interface. The project is distributed under the Apache License 2.0; API stability is still limited by its pre-1.0 status.
+- The artifact-driven viewer visualizes only recorded or explicitly labeled derived facts. It does not improve physical fidelity, reconstruct omitted state, or explain causality with a learned model.
+- Version 0.2 is an alpha public interface. The project is distributed under the Apache License 2.0; API stability is still limited by its pre-1.0 status.

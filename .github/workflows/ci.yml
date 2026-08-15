@@ -19,3 +19,4 @@ jobs:
       - run: python -m pytest
       - run: themis validate examples/basic.toml
       - run: themis run examples/basic.toml --output-dir "${{ runner.temp }}/themis-results"
+      - run: themis view --help

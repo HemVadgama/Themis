@@ -1,12 +1,45 @@
 from dataclasses import asdict, dataclass, field
 
 
+TRACE_SCHEMA_VERSION = 2
+
+EVENT_CATEGORIES = {
+    "RUN_STARTED": "experiment",
+    "RUN_COMPLETED": "experiment",
+    "STATE_UPDATED": "state",
+    "AGENT_STATE_UPDATED": "observation",
+    "CONJUNCTION_DETECTED": "risk",
+    "CONJUNCTION_RESOLVED": "risk",
+    "RISK_REASSESSED": "reassessment",
+    "SECONDARY_CONJUNCTION_DETECTED": "risk",
+    "MESSAGE_SENT": "communication",
+    "MESSAGE_DELIVERED": "communication",
+    "MESSAGE_DROPPED": "failure",
+    "MESSAGE_DELAYED_BEYOND_USEFULNESS": "failure",
+    "PROTOCOL_DECISION": "decision",
+    "COORDINATION_TIMEOUT": "failure",
+    "MANEUVER_PROPOSED": "action",
+    "MANEUVER_VALIDATED": "validation",
+    "MANEUVER_REJECTED": "validation",
+    "MANEUVER_ACCEPTED": "validation",
+    "MANEUVER_SCHEDULED": "action",
+    "MANEUVER_EXECUTED": "execution",
+    "MANEUVER_FAILED": "failure",
+    "TRAJECTORY_REPROPAGATED": "state",
+    "RESOURCE_UPDATED": "resource",
+}
+
+
 @dataclass
 class TraceEvent:
     time: int
     sequence: int
     event_type: str
     payload: dict = field(default_factory=dict)
+    category: str | None = None
+    actor: str | None = None
+    entity_ids: list[str] = field(default_factory=list)
+    references: dict[str, str] = field(default_factory=dict)
 
     def to_dict(self):
         return asdict(self)
@@ -22,12 +55,16 @@ class SimulationTrace:
         self.events = []
         self._sequence = 0
 
-    def record(self, time_step, event_type, payload=None):
+    def record(self, time_step, event_type, payload=None, *, category=None, actor=None, entity_ids=None, references=None):
         event = TraceEvent(
             time=time_step,
             sequence=self._sequence,
             event_type=event_type,
             payload=payload or {},
+            category=category or EVENT_CATEGORIES.get(event_type, "other"),
+            actor=actor,
+            entity_ids=list(entity_ids or []),
+            references=dict(references or {}),
         )
         self._sequence += 1
         self.events.append(event)
@@ -35,6 +72,7 @@ class SimulationTrace:
 
     def to_dict(self):
         return {
+            "trace_schema_version": TRACE_SCHEMA_VERSION,
             "run_id": self.run_id,
             "scenario_id": self.scenario_id,
             "protocol": self.protocol,

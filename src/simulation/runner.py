@@ -94,6 +94,42 @@ def build_position_records_from_trajectories(trajectories, step):
     return [trajectories[agent_id].position_record_at(step) for agent_id in sorted(trajectories)]
 
 
+def _agent_snapshot(agent):
+    state = agent.state
+    return {
+        "agent_id": agent.agent_id,
+        "fuel_budget": state.fuel_budget,
+        "reserved_fuel": state.reserved_fuel,
+        "mission_priority": state.mission_priority,
+        "risk_state": state.risk_state,
+        "safety_state": state.safety_state,
+        "known_risk_event_ids": sorted(state.known_risk_events),
+        "active_conjunction_ids": sorted(state.active_conjunctions),
+        "known_neighbor_ids": sorted(state.known_neighbors),
+        "accepted_maneuver_id": state.accepted_maneuver,
+        "maneuver_history": list(state.maneuver_history),
+        "last_communication_time": state.last_communication_time,
+    }
+
+
+def _protocol_context_snapshot(context):
+    return {
+        "global_access": context.global_access,
+        "visible_risk_event_ids": [risk.risk_event_id for risk in context.risk_events],
+        "agent_views": {
+            agent_id: {
+                "fuel_budget": view.fuel_budget,
+                "mission_priority": view.mission_priority,
+                "risk_state": view.risk_state,
+                "known_risk_event_ids": sorted(view.known_risk_events),
+                "known_neighbor_ids": sorted(view.known_neighbors),
+            }
+            for agent_id, view in sorted(context.agent_views.items())
+        },
+        "trajectory_ids": sorted(context.trajectories),
+    }
+
+
 def run_scenario(config, protocol_name):
     started_at = time.perf_counter()
     network = NetworkSimulator(
@@ -216,10 +252,19 @@ def _send_risk_alerts(world, risk_events):
                 world.current_time,
                 event_type,
                 {
+                    "message_id": message.message_id,
                     "message_type": message.message_type.value,
+                    "sender_id": message.sender_id,
                     "recipient_id": recipient_id,
                     "risk_event_id": risk_event.risk_event_id,
+                    "sent_time": message.sent_time,
+                    "deliver_at": message.deliver_at,
+                    "configured_latency_steps": world.network.config.latency_steps,
+                    "drop_reason": message.drop_reason,
                 },
+                actor=message.sender_id,
+                entity_ids=[recipient_id],
+                references={"message_id": message.message_id, "risk_event_id": risk_event.risk_event_id},
             )
 
 
@@ -231,22 +276,44 @@ def _deliver_messages(world, time_step, deadline=None):
             event_type = "MESSAGE_DELAYED_BEYOND_USEFULNESS"
         else:
             event_type = "MESSAGE_DELIVERED"
+        risk_event = message.payload.get("risk_event") if isinstance(message.payload, dict) else None
+        risk_event_id = getattr(risk_event, "risk_event_id", None)
         world.trace.record(
             time_step,
             event_type,
             {
                 "message_type": message.message_type.value,
+                "message_id": message.message_id,
                 "sender_id": message.sender_id,
                 "recipient_id": message.recipient_id,
+                "risk_event_id": risk_event_id,
+                "sent_time": message.sent_time,
+                "delivered_time": time_step,
+                "latency_steps": time_step - message.sent_time,
             },
+            actor=message.sender_id,
+            entity_ids=[message.recipient_id],
+            references={key: value for key, value in {"message_id": message.message_id, "risk_event_id": risk_event_id}.items() if value},
         )
         if message.message_type == MessageType.RISK_ALERT and message.recipient_id in world.agents:
-            risk_event = message.payload["risk_event"]
             agent = world.agents[message.recipient_id]
+            before = _agent_snapshot(agent)
             agent.state.known_risk_events[risk_event.risk_event_id] = risk_event
             agent.state.active_conjunctions.add(risk_event.risk_event_id)
             agent.state.risk_state = "HIGH"
             agent.state.last_communication_time = time_step
+            world.trace.record(
+                time_step,
+                "AGENT_STATE_UPDATED",
+                {
+                    "trigger": "RISK_ALERT_RECEIVED",
+                    "before": before,
+                    "after": _agent_snapshot(agent),
+                },
+                actor=agent.agent_id,
+                entity_ids=[agent.agent_id],
+                references={"message_id": message.message_id, "risk_event_id": risk_event.risk_event_id},
+            )
     return delivered
 
 
@@ -317,7 +384,19 @@ def run_closed_loop_scenario(config, protocol_name):
     outcomes = []
 
     world.current_time = 0
-    trace.record(0, "STATE_UPDATED", {"trajectories": {key: value.to_dict() for key, value in world.trajectories.items()}})
+    trace.record(
+        0,
+        "RUN_STARTED",
+        {
+            "scenario": config.name,
+            "protocol": protocol.name,
+            "seed": config.seed,
+            "agent_ids": sorted(world.agents),
+        },
+        actor="simulation",
+        entity_ids=sorted(world.agents),
+    )
+    trace.record(0, "STATE_UPDATED", {"trajectories": {key: value.to_dict() for key, value in world.trajectories.items()}}, actor="simulation", entity_ids=sorted(world.trajectories))
     positions = build_position_records_from_trajectories(world.trajectories, 0)
     conjunctions = detect_conjunctions(positions, config.conjunction_threshold_km)
     risk_events = _risk_events_from_conjunctions(conjunctions, config, 0)
@@ -326,7 +405,14 @@ def run_closed_loop_scenario(config, protocol_name):
 
     for risk_event in risk_events:
         world.risk_events[risk_event.risk_event_id] = risk_event
-        trace.record(0, "CONJUNCTION_DETECTED", risk_event.to_dict())
+        trace.record(
+            0,
+            "CONJUNCTION_DETECTED",
+            risk_event.to_dict(),
+            actor="risk-monitor",
+            entity_ids=sorted(risk_event.participants()),
+            references={"risk_event_id": risk_event.risk_event_id},
+        )
 
     _send_risk_alerts(world, risk_events)
     latest_deadline = max((risk.decision_deadline for risk in risk_events), default=0)
@@ -340,6 +426,21 @@ def run_closed_loop_scenario(config, protocol_name):
     context = _build_protocol_context(world, protocol, risk_events, generator, config)
     decision = protocol.propose_maneuvers(context)
     metrics.coordination_attempts += decision.coordination_attempts
+    trace.record(
+        world.current_time,
+        "PROTOCOL_DECISION",
+        {
+            "protocol": protocol.name,
+            "inputs": _protocol_context_snapshot(context),
+            "proposal_ids": [proposal.maneuver_id for proposal in decision.maneuver_proposals],
+            "coordination_attempts": decision.coordination_attempts,
+            "unresolved_conjunctions": decision.unresolved_conjunctions,
+            "rationale": decision.rationale,
+        },
+        actor=protocol.name,
+        entity_ids=sorted(context.agent_views),
+        references={"risk_event_id": risk_events[0].risk_event_id} if len(risk_events) == 1 else {},
+    )
 
     if not decision.maneuver_proposals and risk_events:
         metrics.timeouts += len(risk_events)
@@ -358,11 +459,25 @@ def run_closed_loop_scenario(config, protocol_name):
 
         metrics.maneuvers_proposed += 1
         metrics.planned_maneuvers += 1
-        trace.record(proposal.proposal_time, "MANEUVER_PROPOSED", proposal.to_dict())
+        trace.record(
+            proposal.proposal_time,
+            "MANEUVER_PROPOSED",
+            proposal.to_dict(),
+            actor=proposal.agent_id,
+            entity_ids=[proposal.agent_id],
+            references={"maneuver_id": proposal.maneuver_id, "risk_event_id": proposal.risk_event_id},
+        )
 
         validation = validator.validate(proposal, world, config)
         validator.apply_result_to_proposal(proposal, validation)
-        trace.record(proposal.proposal_time, "MANEUVER_VALIDATED" if validation.valid else "MANEUVER_REJECTED", validation.to_dict())
+        trace.record(
+            proposal.proposal_time,
+            "MANEUVER_VALIDATED" if validation.valid else "MANEUVER_REJECTED",
+            {**validation.to_dict(), "maneuver_id": proposal.maneuver_id, "risk_event_id": proposal.risk_event_id, "agent_id": proposal.agent_id},
+            actor="safety-validator",
+            entity_ids=[proposal.agent_id],
+            references={"maneuver_id": proposal.maneuver_id, "risk_event_id": proposal.risk_event_id},
+        )
 
         if not validation.valid:
             metrics.safety_validation_failures += 1
@@ -374,18 +489,55 @@ def run_closed_loop_scenario(config, protocol_name):
         proposal.proposal_status = ManeuverStatus.ACCEPTED.value
         world.maneuvers[proposal.maneuver_id] = proposal
         agent = world.agents[proposal.agent_id]
+        agent_before_acceptance = _agent_snapshot(agent)
         agent.state.accepted_maneuver = proposal.maneuver_id
         agent.state.reserved_fuel += proposal.estimated_fuel_cost
-        trace.record(proposal.proposal_time, "MANEUVER_ACCEPTED", {"maneuver_id": proposal.maneuver_id})
+        trace.record(proposal.proposal_time, "MANEUVER_ACCEPTED", {"maneuver_id": proposal.maneuver_id, "risk_event_id": proposal.risk_event_id, "agent_id": proposal.agent_id}, actor="safety-validator", entity_ids=[proposal.agent_id], references={"maneuver_id": proposal.maneuver_id, "risk_event_id": proposal.risk_event_id})
+        trace.record(
+            proposal.proposal_time,
+            "AGENT_STATE_UPDATED",
+            {"trigger": "MANEUVER_ACCEPTED", "before": agent_before_acceptance, "after": _agent_snapshot(agent)},
+            actor=proposal.agent_id,
+            entity_ids=[proposal.agent_id],
+            references={"maneuver_id": proposal.maneuver_id, "risk_event_id": proposal.risk_event_id},
+        )
 
         proposal.proposal_status = ManeuverStatus.SCHEDULED.value
-        trace.record(proposal.planned_execution_time, "MANEUVER_SCHEDULED", proposal.to_dict())
+        trace.record(proposal.planned_execution_time, "MANEUVER_SCHEDULED", proposal.to_dict(), actor=proposal.agent_id, entity_ids=[proposal.agent_id], references={"maneuver_id": proposal.maneuver_id, "risk_event_id": proposal.risk_event_id})
 
         pre_trajectories = deepcopy(world.trajectories)
         world.current_time = proposal.planned_execution_time
+        agent_before_execution = _agent_snapshot(agent)
+        fuel_before = agent.state.fuel_budget
+        reserved_before = agent.state.reserved_fuel
         execution = executor.execute(proposal, world, config)
         agent.state.reserved_fuel = max(0.0, agent.state.reserved_fuel - proposal.estimated_fuel_cost)
-        trace.record(world.current_time, "MANEUVER_EXECUTED" if execution["executed"] else "MANEUVER_FAILED", {**execution, "maneuver": proposal.to_dict()})
+        trace.record(world.current_time, "MANEUVER_EXECUTED" if execution["executed"] else "MANEUVER_FAILED", {**execution, "maneuver": proposal.to_dict()}, actor=proposal.agent_id, entity_ids=[proposal.agent_id], references={"maneuver_id": proposal.maneuver_id, "risk_event_id": proposal.risk_event_id})
+        trace.record(
+            world.current_time,
+            "AGENT_STATE_UPDATED",
+            {"trigger": "MANEUVER_EXECUTED" if execution["executed"] else "MANEUVER_FAILED", "before": agent_before_execution, "after": _agent_snapshot(agent)},
+            actor=proposal.agent_id,
+            entity_ids=[proposal.agent_id],
+            references={"maneuver_id": proposal.maneuver_id, "risk_event_id": proposal.risk_event_id},
+        )
+        trace.record(
+            world.current_time,
+            "RESOURCE_UPDATED",
+            {
+                "agent_id": proposal.agent_id,
+                "resource": "fuel_proxy",
+                "unit": "delta-v proxy units",
+                "before": fuel_before,
+                "after": agent.state.fuel_budget,
+                "reserved_before": reserved_before,
+                "reserved_after": agent.state.reserved_fuel,
+                "change": agent.state.fuel_budget - fuel_before,
+            },
+            actor=proposal.agent_id,
+            entity_ids=[proposal.agent_id],
+            references={"maneuver_id": proposal.maneuver_id, "risk_event_id": proposal.risk_event_id},
+        )
 
         if not execution["executed"]:
             metrics.maneuvers_failed += 1
@@ -400,7 +552,7 @@ def run_closed_loop_scenario(config, protocol_name):
         metrics.per_agent_maneuver_burden[proposal.agent_id] = metrics.per_agent_maneuver_burden.get(proposal.agent_id, 0) + 1
         metrics.detection_to_decision_time_steps.append(proposal.proposal_time - world.risk_events[proposal.risk_event_id].time)
         metrics.decision_to_execution_time_steps.append(proposal.planned_execution_time - proposal.proposal_time)
-        trace.record(world.current_time, "TRAJECTORY_REPROPAGATED", {"agent_id": proposal.agent_id, "trajectory": world.trajectories[proposal.agent_id].to_dict()})
+        trace.record(world.current_time, "TRAJECTORY_REPROPAGATED", {"agent_id": proposal.agent_id, "trajectory": world.trajectories[proposal.agent_id].to_dict()}, actor="executor", entity_ids=[proposal.agent_id], references={"maneuver_id": proposal.maneuver_id, "risk_event_id": proposal.risk_event_id})
 
         outcome = evaluate_maneuver_outcome(
             pre_trajectories,
@@ -411,12 +563,12 @@ def run_closed_loop_scenario(config, protocol_name):
             config.risk_reassessment_horizon_steps,
         )
         outcomes.append(outcome)
-        trace.record(world.current_time, "RISK_REASSESSED", outcome)
+        trace.record(world.current_time, "RISK_REASSESSED", outcome, actor="risk-monitor", entity_ids=sorted(world.risk_events[proposal.risk_event_id].participants()), references={"maneuver_id": proposal.maneuver_id, "risk_event_id": proposal.risk_event_id})
 
         if outcome["outcome"] == "RESOLVED":
             metrics.resolved_conjunctions += 1
             world.risk_events[proposal.risk_event_id].status = "RESOLVED"
-            trace.record(world.current_time, "CONJUNCTION_RESOLVED", {"risk_event_id": proposal.risk_event_id})
+            trace.record(world.current_time, "CONJUNCTION_RESOLVED", {"risk_event_id": proposal.risk_event_id}, actor="risk-monitor", entity_ids=sorted(world.risk_events[proposal.risk_event_id].participants()), references={"maneuver_id": proposal.maneuver_id, "risk_event_id": proposal.risk_event_id})
         elif outcome["outcome"] == "WORSENED":
             metrics.worsened_conjunctions += 1
             metrics.unresolved_conjunctions += 1
@@ -450,7 +602,7 @@ def run_closed_loop_scenario(config, protocol_name):
     }
     completed_metrics = metrics.to_dict(include_extended=True)
     completed_metrics.pop("runtime_seconds", None)
-    trace.record(config.duration_steps, "RUN_COMPLETED", {"metrics": completed_metrics})
+    trace.record(config.duration_steps, "RUN_COMPLETED", {"metrics": completed_metrics}, actor="simulation", entity_ids=sorted(world.agents))
     result["trace"] = trace.to_dict()
     return result
 

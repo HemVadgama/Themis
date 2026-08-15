@@ -12,6 +12,8 @@ from src.configuration import ConfigurationError, load_experiment_config
 from src.protocols.registry import available_protocols
 from src.simulation.runner import run_closed_loop_scenario
 from src.version import __version__
+from src.viewer.model import ViewerArtifactError
+from src.viewer.server import serve_viewer
 
 
 def _parser():
@@ -42,6 +44,13 @@ def _parser():
 
     replay = commands.add_parser("replay", help="Print ordered events from a run directory or events.jsonl.")
     replay.add_argument("path", help="Run directory or events.jsonl path.")
+
+    view = commands.add_parser("view", help="Open a completed run, comparison, or sweep in the local visual debugger.")
+    view.add_argument("path", help="Path to a run, comparison, or sweep directory.")
+    view.add_argument("--compare", help="Optional second run directory for synchronized comparison.")
+    view.add_argument("--host", default="127.0.0.1", help="Local bind address (default: 127.0.0.1).")
+    view.add_argument("--port", type=int, default=0, help="Local port; 0 chooses an available port.")
+    view.add_argument("--no-open", action="store_true", help="Serve without opening a browser.")
     return parser
 
 
@@ -127,7 +136,9 @@ def main(argv=None):
             print("Configuration is valid.")
         elif args.command == "replay":
             _replay(args.path)
-    except (ConfigurationError, OSError, ValueError, json.JSONDecodeError) as error:
+        elif args.command == "view":
+            serve_viewer(args.path, compare=args.compare, host=args.host, port=args.port, open_browser=not args.no_open)
+    except (ConfigurationError, ViewerArtifactError, OSError, ValueError, json.JSONDecodeError) as error:
         if args.debug:
             raise
         print(f"Error: {error}", file=sys.stderr)

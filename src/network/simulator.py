@@ -16,8 +16,13 @@ class NetworkSimulator:
     def __post_init__(self):
         self._random = self.random_source or random.Random(self.config.seed)
         self._send_counts = {}
+        self._next_message_sequence = 1
 
     def send(self, message, current_time):
+        if message.message_id is None:
+            message.message_id = f"msg-{self._next_message_sequence:06d}"
+            self._next_message_sequence += 1
+        message.sent_time = current_time
         key = (current_time, message.sender_id)
         sent_this_tick = self._send_counts.get(key, 0)
 
@@ -25,6 +30,7 @@ class NetworkSimulator:
             self.config.bandwidth_limit_per_agent is not None
             and sent_this_tick >= self.config.bandwidth_limit_per_agent
         ):
+            message.drop_reason = "BANDWIDTH_LIMIT"
             self.messages_dropped += 1
             return False
 
@@ -32,10 +38,10 @@ class NetworkSimulator:
         self.messages_sent += 1
 
         if self._random.random() < self.config.packet_loss_rate:
+            message.drop_reason = "PACKET_LOSS"
             self.messages_dropped += 1
             return False
 
-        message.sent_time = current_time
         message.deliver_at = current_time + self.config.latency_steps
         self.queued_messages.append(message)
         self.queued_messages.sort(key=lambda queued: (queued.deliver_at, queued.sender_id, queued.recipient_id))

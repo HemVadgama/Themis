@@ -121,7 +121,7 @@ Inspect a saved trace:
 python -m src.simulation.runner replay results/closed_loop_run.json
 ```
 
-Replay is currently textual trace inspection, not full state reconstruction or visualization.
+`replay` remains textual trace inspection rather than state reconstruction. Use `themis view <run-directory>` for the separate artifact-driven visual debugger.
 
 ## Example Scenarios
 

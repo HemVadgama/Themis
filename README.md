@@ -1,6 +1,6 @@
 # Themis
 
-Themis is a deterministic experimental testbed for comparing autonomous and distributed coordination strategies under configurable communication, execution, resource, and safety constraints. Its first benchmark domain is simplified space traffic coordination.
+Themis is a deterministic experimentation framework for studying coordination in networked autonomous systems under communication, execution, resource, and safety constraints. Its first implemented benchmark domain is simplified space-traffic coordination.
 
 It helps researchers ask questions such as: how does a local protocol behave when risk alerts are late or lost, how does it compare with a centralized policy on the same initial state, and which proposed actions an independent safety layer rejects?
 
@@ -30,6 +30,35 @@ Artifacts: .../results/basic-conjunction-centralized-s42-9cd2d4016a
 ```
 
 That directory contains the resolved `config.toml`, `summary.json`, one-row `metrics.csv`, ordered `events.jsonl`, and version/provenance `metadata.json`. The run ID is derived from the resolved configuration.
+
+## Understand a run visually
+
+The artifact-driven viewer is a local visual debugger for completed experiments. It does not execute or modify simulations.
+
+```bash
+themis run examples/viewer-demo.toml
+themis view results/<printed-run-id>
+```
+
+Use the synchronized timeline to inspect global benchmark truth, agent-local knowledge, observed message delivery and loss, protocol inputs, action proposals, independent validation, execution, resource changes, and risk reassessment.
+
+![Themis single-run viewer showing a dropped risk alert and synchronized causal trace](docs/images/viewer-run.png)
+
+Compare any two compatible completed runs:
+
+```bash
+themis view results/<run-a> --compare results/<run-b>
+```
+
+![Themis comparison viewer showing partial delivery and total network-blackout outcomes](docs/images/viewer-comparison.png)
+
+Completed sweep directories are detected automatically:
+
+```bash
+themis view results/network-sweep-sweep
+```
+
+See the [viewer guide](docs/viewer.md) for its layout, controls, trace semantics, comparison behavior, and limitations.
 
 ## What to run next
 
@@ -93,6 +122,7 @@ Implement the narrow `CoordinationProtocol` contract, operate only on `ProtocolC
 - [Getting started](docs/getting-started.md)
 - [Configuration reference](docs/configuration.md)
 - [Experiment and sweep guide](docs/experiments.md)
+- [Artifact viewer guide](docs/viewer.md)
 - [Protocol authoring](docs/protocols.md)
 - [Metrics reference](docs/metrics.md)
 - [Assumptions and limitations](docs/assumptions-and-limitations.md)

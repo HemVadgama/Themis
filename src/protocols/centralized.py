@@ -44,6 +44,7 @@ class CentralizedProtocol:
                 continue
 
             selected = self._select_view(view_a, view_b)
+            criterion = "lower_mission_priority" if view_a.mission_priority != view_b.mission_priority else "higher_available_fuel"
             proposal = context.maneuver_generator.best_candidate(
                 selected.agent_id,
                 risk_event,
@@ -54,8 +55,10 @@ class CentralizedProtocol:
             )
             if proposal is None:
                 decision.unresolved_conjunctions += 1
+                decision.rationale.append({"risk_event_id": risk_event.risk_event_id, "selected_agent_id": selected.agent_id, "selection_criterion": criterion, "outcome": "no_improving_candidate"})
             else:
                 decision.maneuver_proposals.append(proposal)
+                decision.rationale.append({"risk_event_id": risk_event.risk_event_id, "selected_agent_id": selected.agent_id, "selection_criterion": criterion, "outcome": "proposal_created"})
 
         return decision
 

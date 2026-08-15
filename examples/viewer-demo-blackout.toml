@@ -1,0 +1,17 @@
+[experiment]
+name = "viewer-demo"
+seed = 42
+
+[scenario]
+preset = "closed_loop_resolved"
+
+[protocol]
+name = "greedy"
+
+[network]
+latency_steps = 1
+packet_loss_rate = 1.0
+bandwidth_limit_per_agent = 10
+
+[output]
+directory = "../results"

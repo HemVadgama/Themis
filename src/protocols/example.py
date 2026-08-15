@@ -21,6 +21,7 @@ class ExampleLowestIdProtocol:
             agent_id = min(risk.participants())
             if agent_id not in context.agent_views:
                 decision.unresolved_conjunctions += 1
+                decision.rationale.append({"risk_event_id": risk.risk_event_id, "selected_agent_id": agent_id, "selection_criterion": "lexicographically_first_participant", "outcome": "agent_not_visible"})
                 continue
             proposal = context.maneuver_generator.best_candidate(
                 agent_id,
@@ -32,6 +33,8 @@ class ExampleLowestIdProtocol:
             )
             if proposal is None:
                 decision.unresolved_conjunctions += 1
+                decision.rationale.append({"risk_event_id": risk.risk_event_id, "selected_agent_id": agent_id, "selection_criterion": "lexicographically_first_participant", "outcome": "no_improving_candidate"})
             else:
                 decision.maneuver_proposals.append(proposal)
+                decision.rationale.append({"risk_event_id": risk.risk_event_id, "selected_agent_id": agent_id, "selection_criterion": "lexicographically_first_participant", "outcome": "proposal_created"})
         return decision

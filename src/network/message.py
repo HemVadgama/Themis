@@ -16,5 +16,7 @@ class Message:
     recipient_id: str
     message_type: MessageType
     payload: dict = field(default_factory=dict)
+    message_id: str | None = None
     sent_time: int = 0
-    deliver_at: int = 0
+    deliver_at: int | None = None
+    drop_reason: str | None = None

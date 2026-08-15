@@ -10,6 +10,8 @@ not flight-dynamics quantities.
 | Network degradation | `themis run examples/network-degradation.toml` | Greedy coordination depends on delivered alerts; seeded loss or latency can leave the risk unresolved. |
 | Safety rejection | `themis run examples/safety-rejection.toml` | A proposal is rejected with `INSUFFICIENT_FUEL`; physical truth is not mutated. |
 | Parameter sweep | `themis sweep examples/network-sweep.toml` | Runs 36 protocol/network/seed combinations and writes aggregate CSV and JSON. |
+| Viewer demo | `themis run examples/viewer-demo.toml` | One risk alert is delivered and one is dropped; local knowledge, a valid action, execution, and resolution are all visible in the viewer. |
+| Viewer blackout comparison | `themis run examples/viewer-demo-blackout.toml` | Both alerts are dropped, so greedy coordination cannot act; compare it with `viewer-demo` to inspect the divergence. |
 
 Every individual run writes `config.toml`, `summary.json`, `metrics.csv`,
 `events.jsonl`, and `metadata.json` under `results/<run-id>/`. Comparison and

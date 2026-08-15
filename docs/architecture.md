@@ -35,6 +35,9 @@ Risk reassessment + secondary-risk scan
              │
              ▼
 MetricsSummary + SimulationTrace ──► run artifacts
+                                      │
+                                      ▼
+                         read-only local viewer
 ```
 
 ## State ownership
@@ -54,6 +57,8 @@ These boundaries make information access and state mutation explicit. They also 
 The current closed-loop runner constructs initial linear trajectories, detects risk at simulation step zero, transmits alerts, waits through configured latency, asks the selected protocol for proposals, validates each proposal, executes valid ones, and reassesses over the configured horizon. This is a deliberately small benchmark lifecycle, not a continuously propagating orbital operations loop.
 
 The older `run_scenario` open-loop API remains for backward compatibility. The external CLI uses `run_closed_loop_scenario` and the artifact layer.
+
+The viewer is downstream of standard artifacts. `src.viewer.model` validates and normalizes artifact schemas, builds event/reference indexes, and derives presentation state. `src.viewer.server` serves only those immutable data structures and packaged frontend assets over loopback HTTP. No viewer module imports or invokes simulation execution.
 
 ## Public interfaces
 

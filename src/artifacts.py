@@ -10,6 +10,9 @@ import subprocess
 from src.version import __version__
 
 
+ARTIFACT_SCHEMA_VERSION = 2
+
+
 def deterministic_run_id(configuration):
     identity = configuration.resolved_dict()
     # Artifact placement is not part of the scientific experiment identity.
@@ -109,6 +112,7 @@ def write_run_artifacts(configuration, result):
         for event in result["trace"]["events"]:
             handle.write(json.dumps(event, sort_keys=True) + "\n")
     metadata = {
+        "artifact_schema_version": ARTIFACT_SCHEMA_VERSION,
         "run_id": run_id,
         "themis_version": __version__,
         "git_commit": _git_commit(configuration.source_path),

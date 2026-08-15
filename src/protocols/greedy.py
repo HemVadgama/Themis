@@ -75,9 +75,13 @@ class GreedyProtocol:
                 if proposal is not None:
                     decision.maneuver_proposals.append(proposal)
                     proposed_pairs.add(risk_event_id)
+                    decision.rationale.append({"risk_event_id": risk_event_id, "selected_agent_id": view.agent_id, "selection_criterion": "first_eligible_local_view", "known_risk": True, "positive_fuel": True, "outcome": "proposal_created"})
 
         if not decision.maneuver_proposals and context.risk_events:
             decision.unresolved_conjunctions = len(context.risk_events)
+            decision.rationale.append({"selection_criterion": "local_information_only", "outcome": "no_eligible_proposal"})
+        elif not context.risk_events:
+            decision.rationale.append({"selection_criterion": "local_information_only", "outcome": "no_visible_risk_events"})
 
         return decision
 

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark light">
+    <title>Themis — Experiment Viewer</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#workspace">Skip to experiment</a>
+    <div id="app">
+      <main class="loading-shell" aria-busy="true">
+        <div class="loading-mark" aria-hidden="true"></div>
+        <p>Reading experiment artifacts…</p>
+      </main>
+    </div>
+    <div id="live-region" class="sr-only" aria-live="polite"></div>
+    <script src="/app.js" defer></script>
+  </body>
+</html>

@@ -22,6 +22,14 @@ themis run examples/basic.toml
 
 Copy the printed artifact path. `summary.json` is the quickest machine-readable answer, `metrics.csv` imports directly into analysis tools, and `events.jsonl` explains the lifecycle in order. Inspect it with `themis replay results/<run-id>`.
 
+Open the same artifacts in the local visual debugger:
+
+```bash
+themis view results/<run-id>
+```
+
+The [viewer guide](viewer.md) explains timeline navigation, agent-local knowledge, communication events, comparisons, and sweep exploration.
+
 ## Modify and reproduce
 
 Copy the example, change one parameter, and run the copy. Output paths are relative to that configuration file. Each run saves the fully resolved config; rerunning that saved file reproduces model-derived results when the seed and software version match.

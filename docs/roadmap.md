@@ -6,6 +6,6 @@ The next engineering milestones should be driven by external experiment needs:
 2. Add uncertainty/covariance-aware risk models with unambiguous metric names.
 3. Expand decentralized protocols and network topology/fault models.
 4. Add full state-reconstruction replay.
-5. Build a lightweight viewer that reads saved artifacts and does not control runs.
+5. Extend the artifact-driven viewer as researchers identify additional causal questions and trace requirements. The initial run, comparison, and sweep viewer is complete.
 
-Visualization is intentionally deferred until real users confirm which trace views help them evaluate protocols.
+Further visualization breadth should be driven by observed researcher workflows rather than generic dashboard features.

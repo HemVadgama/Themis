@@ -8,6 +8,7 @@ class ProtocolDecision:
     planned_maneuvers: list[str] = field(default_factory=list)
     unresolved_conjunctions: int = 0
     maneuver_proposals: list = field(default_factory=list)
+    rationale: list[dict] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
