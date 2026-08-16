@@ -1,6 +1,6 @@
 # Metrics
 
-Metrics describe this simulation model only. They are not operational collision probabilities or validated spacecraft performance quantities.
+Metrics report quantities defined by the `spacecraft-coordination-v1` simulation model.
 
 ## Directly measured simulation counts
 

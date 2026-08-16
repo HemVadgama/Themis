@@ -1,6 +1,6 @@
 # Protocol Arena
 
-Themis is an experimental research and benchmarking platform for distributed autonomous coordination. It is not intended for operational conjunction assessment, spacecraft command, or flight-safety decisions.
+Themis is an experimental research and benchmarking platform for distributed autonomous coordination.
 
 Space traffic management is the first domain. The protocol arena connects conjunction detection to agent coordination, maneuver proposal, safety validation, simulated trajectory modification, risk reassessment, and structured trace output.
 
@@ -153,7 +153,7 @@ Closed-loop runs report safety, coordination, resource, communication, and timin
 ## Known Limitations
 
 - The closed-loop propagator is linear and synthetic.
-- Maneuver execution is a benchmark abstraction, not spacecraft dynamics.
+- Maneuver execution uses the documented instantaneous velocity-change abstraction.
 - Risk is distance-threshold based, not probabilistic collision assessment.
 - Maneuver validation uses short-horizon separation checks.
 - Replay is trace inspection, not deterministic state rehydration.

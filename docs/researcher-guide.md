@@ -1,15 +1,15 @@
 # Researcher guide
 
-Themis is ready for exploratory and comparative computational studies whose question fits the implemented `spacecraft-coordination-v1` abstraction. It is not ready for operational spaceflight decisions or claims about real collision probability. Start by writing the claim you hope to make, then verify that every quantity required by that claim exists in the model and has a documented interpretation.
+Themis supports exploratory and comparative computational studies using the implemented `spacecraft-coordination-v1` benchmark. Start by writing the question you want to answer, then verify that the required quantities exist in the model and have documented interpretations.
 
 ## Recommended study workflow
 
-1. Read [assumptions and limitations](assumptions-and-limitations.md) and [metrics](metrics.md). Treat omitted physics and information as study boundaries.
+1. Read the benchmark [assumptions](assumptions-and-limitations.md) and [metrics](metrics.md) to confirm that they fit the study.
 2. Copy a curated TOML config and record the scientific question, hypothesis, independent variables, dependent metrics, seed policy, exclusions, and planned comparisons in `experiment.metadata` or an adjacent preregistration.
 3. Validate the config with `themis validate`. Archive the resolved config, Themis version, commit, dependency lock or environment export, and source-data versions.
 4. Pilot one run and inspect the event trace programmatically or with the read-only viewer. Confirm that the protocol received only intended information and that each measured transition has a trace event.
 5. Use `themis compare` for paired qualitative debugging. Use a sweep containing multiple seeds for quantitative claims, then run `themis analyze`.
-6. Investigate failed cells and missing values; do not silently discard them. Report model limitations and the number of independent seeds per condition.
+6. Investigate failed cells and missing values; do not silently discard them. Report the number of independent seeds per condition.
 7. Re-run selected artifacts from their saved `config.toml` in a clean environment before publication.
 
 ## What is stable enough to integrate

@@ -1,6 +1,6 @@
 # Security policy
 
-Themis is research software and must not control spacecraft or other safety-critical systems. Supported security fixes target the latest release line.
+Supported security fixes target the latest release line.
 
 Do not open a public issue for a vulnerability that could put users at risk. Contact the repository owner privately through GitHub. Include affected version, reproduction steps, impact, and any suggested mitigation. Avoid accessing data or systems beyond what is necessary to demonstrate the issue.
 

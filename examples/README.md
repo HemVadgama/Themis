@@ -1,7 +1,6 @@
 # Example experiments
 
-These examples exercise the real closed-loop pipeline. Units are benchmark units,
-not flight-dynamics quantities.
+These examples exercise the real closed-loop pipeline using the documented benchmark units.
 
 | Example | Command | Expected qualitative result |
 |---|---|---|

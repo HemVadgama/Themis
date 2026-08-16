@@ -1,8 +1,7 @@
 """Legacy TLE propagation demo, separate from the validated benchmark runner.
 
-This script is useful for exploring the optional orbit input stack. It does not
-produce the versioned Themis run-artifact contract and must not be used to make
-operational conjunction or flight-safety decisions.
+This script explores the optional orbit input stack. It is separate from the
+versioned Themis benchmark and does not produce the run-artifact contract.
 """
 
 import argparse

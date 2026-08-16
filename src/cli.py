@@ -19,7 +19,7 @@ def _parser():
     parser = argparse.ArgumentParser(
         prog="themis",
         description="Run deterministic autonomous-coordination experiments under communication, execution, and safety constraints.",
-        epilog="Themis is a research testbed, not an operational flight-safety system.",
+        epilog="See the researcher guide and configuration reference for study design and model scope.",
     )
     parser.add_argument("--version", action="version", version=f"Themis {__version__}")
     parser.add_argument("--debug", action="store_true", help="Show tracebacks for configuration and runtime errors.")

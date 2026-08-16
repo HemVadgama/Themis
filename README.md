@@ -4,7 +4,7 @@ Themis is an inspectable experimentation framework for studying coordination in 
 
 It helps researchers ask questions such as: how does a local protocol behave when risk alerts are late or lost, how does it compare with a centralized policy on the same initial state, and which proposed actions an independent safety layer rejects?
 
-Themis is **not** an operational conjunction-assessment system, orbit-determination tool, maneuver planner, spacecraft controller, or source of flight-safety advice. The closed-loop examples use linear benchmark trajectories and threshold-based risk. See [assumptions and limitations](docs/assumptions-and-limitations.md).
+The first benchmark uses linear local-frame trajectories and threshold-based risk; its documented scope is in [assumptions and limitations](docs/assumptions-and-limitations.md).
 
 ## Five-minute quick start
 
@@ -123,7 +123,7 @@ Implement the narrow public `themis.protocols.CoordinationProtocol` contract and
 
 ## Research readiness
 
-Themis provides deterministic seeded runs, strict resolved configuration, immutable completed-run inspection, machine-readable provenance and JSON Schemas, protocol comparison, resumable parameter sweeps, replicate-aware descriptive statistics, CI across Python 3.11/3.12, and explicit model limitations. These are foundations for controlled computational experiments, not a claim that the current linear benchmark is validated for operational spaceflight.
+Themis provides deterministic seeded runs, strict resolved configuration, immutable completed-run inspection, machine-readable provenance and JSON Schemas, protocol comparison, resumable parameter sweeps, replicate-aware descriptive statistics, and CI across Python 3.11/3.12.
 
 Start with the [researcher guide](docs/researcher-guide.md), read the [methodology and reporting checklist](docs/methodology.md), and inspect the [ecosystem comparison](docs/ecosystem-comparison.md) to decide whether the present abstraction fits your question. The public artifact loader is `themis.artifacts.load_run`; schemas ship with the package.
 

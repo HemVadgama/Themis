@@ -26,7 +26,7 @@ The implementation uses published 95% t critical values through 30 degrees of fr
 - all excluded or failed runs and reasons
 - metric definitions, units, and whether each is a proxy
 - interval/estimator assumptions and any multiple-comparison handling
-- relevant limitations and threats to validity
+- relevant assumptions and threats to validity
 - archive DOI or permanent artifact location, once available
 
-Avoid phrases such as “safer,” “optimal,” or “reduces collision risk” unless the study supplies a validated operational mapping beyond the current benchmark. Prefer precise statements such as “reduced unresolved threshold events in this configuration grid.”
+Report results in terms of the measured benchmark quantities—for example, “reduced unresolved threshold events in this configuration grid”—and state any broader inference separately.
