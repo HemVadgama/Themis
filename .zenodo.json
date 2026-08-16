@@ -1,0 +1,8 @@
+{
+  "title": "Themis: an inspectable testbed for networked autonomous coordination",
+  "description": "A deterministic experimentation framework for studying coordination protocols under communication, execution, resource, and safety constraints.",
+  "upload_type": "software",
+  "license": "Apache-2.0",
+  "creators": [{"name": "Vadgama, Hem"}],
+  "keywords": ["autonomous systems", "multi-agent coordination", "simulation", "reproducible research"]
+}

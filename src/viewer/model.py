@@ -263,7 +263,7 @@ def load_run(path):
         "kind": "run",
         "artifact_schema_version": schema_version,
         "viewer_schema_version": SUPPORTED_ARTIFACT_SCHEMA_VERSION,
-        "benchmark": "spacecraft-coordination",
+        "benchmark": summary.get("benchmark", metadata.get("benchmark", "spacecraft-coordination-v1")),
         "path": str(run_path),
         "summary": summary,
         "metadata": metadata,

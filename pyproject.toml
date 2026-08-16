@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "themis-testbed"
-version = "0.2.0"
+version = "0.3.0"
 description = "Deterministic experimentation framework for networked autonomous coordination"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -12,24 +12,36 @@ license = {file = "LICENSE"}
 authors = [{name = "Themis contributors"}]
 classifiers = [
   "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
   "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering",
 ]
+keywords = ["autonomous systems", "multi-agent coordination", "simulation", "reproducible research"]
+
+[project.urls]
+Homepage = "https://github.com/HemVadgama/Themis"
+Documentation = "https://github.com/HemVadgama/Themis/tree/main/docs"
+Repository = "https://github.com/HemVadgama/Themis"
+Issues = "https://github.com/HemVadgama/Themis/issues"
+Changelog = "https://github.com/HemVadgama/Themis/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 orbit = ["numpy>=1.24", "pandas>=2.0", "skyfield>=1.45"]
-dev = ["pytest>=8"]
+viewer = []
+dev = ["pytest>=8", "build>=1.2"]
 
 [project.scripts]
 themis = "src.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["src*"]
+include = ["src*", "themis*"]
 
 [tool.setuptools.package-data]
 "src.viewer" = ["static/*"]
+"themis" = ["schemas/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

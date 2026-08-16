@@ -27,12 +27,12 @@ A directory containing `comparison.json` or `aggregate.json` is detected as a co
 
 The primary screen is organized around simulation time:
 
-1. **Benchmark state** shows simplified local-frame trajectories, current modeled positions, separation geometry, and the most recent proposed delta-v vector. It intentionally does not depict Earth or imply orbital fidelity.
+1. **Benchmark state** reconstructs the physical model through the exact selected event. Solid paths are recorded history, points are current state, and dashed paths are projections made from the trajectory known at that event. Later trajectory changes are never drawn early. One-dimensional scenarios use an explicit 1D encounter view rather than implying unmodeled Y geometry. It intentionally does not depict Earth or imply orbital fidelity.
 2. **Event inspector** translates the selected event into structured facts and links events sharing message, risk, or maneuver identifiers. Raw JSON remains available for auditing.
 3. **Synchronized timeline** categorizes risk, communication, observation, decision, validation, execution, resource, and reassessment events. Click, scrub, play, use arrow keys, or filter categories. Animation is optional; seeking is immediate.
-4. **Outcome strip** keeps the most important safety, communication, action, and resource-proxy metrics visible with units and provenance labels.
+4. **Outcome strip** is explicitly labeled as the final completed-run summary. It remains visible for context but is not presented as state known at the selected event.
 5. **Truth vs agent knowledge** deliberately separates authoritative simulation risk state from the selected agent's recorded local belief.
-6. **Observed communication** lists messages actually sent, delivered, delayed, or dropped. It is not labeled as network topology because the simulator does not model a persistent graph.
+6. **Observed communication** reconstructs each message as sent/in flight, delivered, delayed, or dropped through the selected event sequence. A message cannot appear delivered before its delivery event. It is not labeled as network topology because the simulator does not model a persistent graph.
 7. **Provenance** shows schema and software versions, seed, git commit, resolved TOML, and a copyable reproduction command.
 
 The physical-truth/observed-communication toggle changes the central visualization. Selecting a message row jumps to its event. Selecting a related causal stage navigates through the action lifecycle.
@@ -54,7 +54,7 @@ Existing uppercase event names remain stable. The viewer normalizes version-1 ar
 
 ![Comparison viewer](images/viewer-comparison.png)
 
-Comparison mode loads two ordinary run directories. It displays only differing configuration values, selected metric differences with `B − A` deltas, outcomes, message-status differences, and events occurring at the synchronized simulation time. Tabs switch the central state, timeline, and inspector between runs without changing the selected time.
+Comparison mode loads two ordinary run directories. It displays only differing configuration values, final metric differences with `B − A` deltas, outcomes, and message/decision/action/risk state at the end of the synchronized simulation step. Tabs switch the exact-event central state, timeline, and inspector between runs without changing the selected time. The end-of-step label makes the cross-run alignment rule explicit when runs contain different event sequences within a step.
 
 The viewer reports divergence facts. It does not claim that a differing configuration caused a differing outcome.
 
@@ -72,7 +72,7 @@ themis view results/<viewer-demo-run> --compare results/<blackout-run>
 
 Opening a completed sweep shows:
 
-- a selectable two-parameter heatmap using mean metric values across repeated cells/seeds;
+- a selectable two-parameter heatmap using mean metric values across matching runs, with replicate count, observed range, and an explicit color scale in every cell;
 - outcome distribution;
 - a compact experiment-cell table; and
 - links from cells to their underlying run viewer.
@@ -87,7 +87,7 @@ The viewer supports keyboard event stepping, timeline scrubbing, clear focus sta
 
 - Version-1 artifacts lack recorded protocol inputs and full agent state transitions; some message/risk linkage is inferred.
 - Agent belief snapshots currently change when modeled risk alerts arrive. Other observation and neighbor-state transitions are not yet emitted by the closed-loop benchmark.
-- The state graphic represents the actual simplified local linear frame, not an orbit around Earth.
+- The state graphic represents the actual simplified local linear frame, not an orbit around Earth. Dashed projection paths are extrapolations of the current recorded trajectory, not observed future state.
 - The viewer cannot reconstruct state absent from artifacts and does not re-run the simulator.
 - Comparison aligns integer simulation steps; it does not establish causal attribution or statistically align different scenario semantics.
 - Sweep heatmaps aggregate existing cells but do not calculate confidence intervals or significance tests.

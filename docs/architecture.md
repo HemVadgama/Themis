@@ -62,6 +62,6 @@ The viewer is downstream of standard artifacts. `src.viewer.model` validates and
 
 ## Public interfaces
 
-External users should depend on the `themis` CLI and TOML schema. Protocol authors may depend on `src.protocols.CoordinationProtocol`, `ProtocolContext`, and `ProtocolDecision`, plus the proposal generator supplied on the context. Other `src.*` modules remain internal and may evolve before version 1.0.
+External users should depend on the `themis` CLI, TOML schema, and documented `themis.*` Python modules. Protocol authors import `CoordinationProtocol`, `ProtocolContext`, `ProtocolDecision`, and `check_protocol` from `themis.protocols`; implementations may be distributed separately through the `themis.protocols` Python entry-point group. `themis.artifacts` is the viewer-independent, read-only run loader. Other `src.*` modules remain internal and may evolve before version 1.0.
 
 The package follows semantic versioning. During the 0.x series, documented CLI, configuration, and protocol-interface breaking changes require a minor-version increment and migration notes.

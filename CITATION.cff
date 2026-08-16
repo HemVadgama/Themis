@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use Themis in research, please cite the software version and archive your resolved experiment artifacts."
+title: "Themis: an inspectable testbed for networked autonomous coordination"
+type: software
+authors:
+  - family-names: "Vadgama"
+    given-names: "Hem"
+version: 0.3.0
+date-released: 2026-08-15
+license: Apache-2.0
+repository-code: "https://github.com/HemVadgama/Themis"
+url: "https://github.com/HemVadgama/Themis"
+abstract: "Themis is a deterministic experimentation framework for studying coordination protocols under communication, execution, resource, and safety constraints."
+keywords:
+  - autonomous systems
+  - multi-agent coordination
+  - simulation
+  - reproducible research

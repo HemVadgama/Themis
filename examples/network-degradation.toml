@@ -2,6 +2,9 @@
 name = "network-degradation"
 seed = 42
 
+[benchmark]
+name = "spacecraft-coordination-v1"
+
 [scenario]
 preset = "closed_loop_resolved"
 

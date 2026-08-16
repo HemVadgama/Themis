@@ -2,6 +2,7 @@
 
 const app = document.querySelector("#app");
 const liveRegion = document.querySelector("#live-region");
+const Temporal = globalThis.ThemisTemporal;
 
 const palette = {
   experiment: "#98a3af", state: "#62c2ca", observation: "#73a7ff",
@@ -22,6 +23,7 @@ let visualMode = "truth";
 let activeCategories = new Set();
 let playTimer = null;
 let sweepState = { x: null, y: null, metric: "resolved_conjunctions" };
+let initialLocationStateApplied = false;
 
 const escapeHtml = (value) => String(value ?? "")
   .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
@@ -103,6 +105,16 @@ function mountRun(run, isComparison = comparison !== null) {
   selectedAgent = run.agents[0]?.agent_id || null;
   activeCategories = new Set(run.event_categories);
   visualMode = "truth";
+  if (!initialLocationStateApplied) {
+    const locationState = new URLSearchParams(window.location.search);
+    const requestedEvent = Number(locationState.get("event"));
+    if (Number.isInteger(requestedEvent) && requestedEvent >= 1 && requestedEvent <= run.events.length) {
+      selectedEventIndex = requestedEvent - 1;
+      selectedTime = run.events[selectedEventIndex].time;
+    }
+    if (locationState.get("mode") === "network") visualMode = "network";
+    initialLocationStateApplied = true;
+  }
   const comparisonBar = comparison ? comparisonModebar() : "";
   const back = rootManifest?.kind === "sweep" ? `<button class="button ghost back-button" id="back-to-sweep">← Sweep</button>` : "";
   app.innerHTML = `<div class="app-shell">${headerTemplate(run, back)}${comparisonBar}
@@ -110,9 +122,9 @@ function mountRun(run, isComparison = comparison !== null) {
       <section class="workspace">
         <article class="panel visual-panel">
           <header class="panel-header"><div><h2 class="panel-title">Benchmark state</h2><span class="panel-kicker" id="visual-time">t = ${selectedTime}</span></div>
-            <div class="segmented" aria-label="Visualization mode"><button data-visual="truth" class="active">Physical truth</button><button data-visual="network">Observed communication</button></div>
+            <div class="segmented" aria-label="Visualization mode"><button data-visual="truth" class="${visualMode === "truth" ? "active" : ""}">Physical truth</button><button data-visual="network" class="${visualMode === "network" ? "active" : ""}">Observed communication</button></div>
           </header>
-          <div class="visual-stage"><svg id="domain-svg" role="img" aria-label="Spacecraft benchmark state at selected simulation time"></svg><div class="visual-note" id="visual-note">Simplified local-frame geometry · distances in km</div></div>
+          <div class="visual-stage"><svg id="domain-svg" role="img" aria-label="Benchmark state at selected simulation time"></svg><div class="visual-note" id="visual-note">Simplified local-frame geometry · distances in km</div></div>
           <div class="agent-bar" id="agent-bar"></div>
         </article>
         <aside class="panel inspector" aria-label="Selected event inspector"><header class="panel-header"><h2 class="panel-title">Event inspector</h2><span class="panel-kicker" id="event-position"></span></header><div class="inspector-scroll" id="inspector"></div></aside>
@@ -252,7 +264,7 @@ function renderRunState() {
   if (scrubber) scrubber.value = selectedTime;
   document.querySelector("#time-readout").textContent = `t = ${selectedTime} · event ${selectedEventIndex + 1}/${currentRun.events.length}`;
   document.querySelector("#visual-time").textContent = `t = ${selectedTime}`;
-  document.querySelector("#event-position").textContent = `#${event.sequence} of ${currentRun.events.length}`;
+  document.querySelector("#event-position").textContent = `event ${selectedEventIndex + 1}/${currentRun.events.length}`;
   renderAgents(); renderInspector(); renderMetrics(); renderKnowledge(); renderNetworkTable(); renderProvenance();
   drawTimeline(); drawDomain();
   if (comparison) renderComparisonEvidence();
@@ -294,49 +306,54 @@ function renderMetrics() {
   const metrics = currentRun.summary.metrics;
   const minSep = metrics.minimum_post_maneuver_separation_km ?? metrics.minimum_pre_maneuver_separation_km;
   document.querySelector("#metrics-strip").innerHTML = [
-    metricCard("Outcome", currentRun.summary.outcome, "simulation result"),
-    metricCard("Minimum separation", minSep === null || minSep === undefined ? "—" : `${formatValue(minSep)} km`, "derived over horizon"),
-    metricCard("Messages", `${metrics.messages_delivered} / ${metrics.messages_sent}`, `${metrics.messages_dropped} dropped`),
-    metricCard("Actions", metrics.maneuvers_executed, `${metrics.maneuvers_rejected} rejected`),
-    metricCard("Δv proxy", `${formatValue(metrics.total_delta_v_used_km_per_step)} km/step`, "simulator proxy"),
-    metricCard("Unresolved", metrics.unresolved_conjunctions, `${metrics.original_conjunctions} initial conflict(s)`)
+    metricCard("Final outcome", currentRun.summary.outcome, "completed-run summary"),
+    metricCard("Final minimum separation", minSep === null || minSep === undefined ? "—" : `${formatValue(minSep)} km`, "aggregate over horizon"),
+    metricCard("Final messages", `${metrics.messages_delivered} / ${metrics.messages_sent}`, `${metrics.messages_dropped} dropped overall`),
+    metricCard("Final actions", metrics.maneuvers_executed, `${metrics.maneuvers_rejected} rejected overall`),
+    metricCard("Final Δv proxy", `${formatValue(metrics.total_delta_v_used_km_per_step)} km/step`, "completed-run aggregate"),
+    metricCard("Final unresolved", metrics.unresolved_conjunctions, `${metrics.original_conjunctions} initial conflict(s)`)
   ].join("");
 }
 
 function activeTruthRisks() {
-  const detected = new Map();
-  for (const event of currentRun.events) {
-    if (event.time > selectedTime || (event.time === selectedTime && event.sequence > currentRun.events[selectedEventIndex].sequence)) break;
-    const riskId = event.references?.risk_event_id || event.payload?.risk_event_id;
-    if (event.event_type === "CONJUNCTION_DETECTED" && riskId) detected.set(riskId, {status: "OPEN", ...event.payload});
-    if (event.event_type === "CONJUNCTION_RESOLVED" && riskId && detected.has(riskId)) detected.get(riskId).status = "RESOLVED";
-  }
-  return [...detected.values()];
+  return Temporal.riskStatesAtCursor(currentRun, Temporal.cursorForEvent(currentRun.events[selectedEventIndex]));
 }
 function agentSnapshot(agentId) {
   const agent = currentRun.agents.find(item => item.agent_id === agentId);
   if (!agent) return null;
   const sequence = currentRun.events[selectedEventIndex]?.sequence ?? Infinity;
-  return agent.snapshots.filter(snapshot => snapshot.time < selectedTime || (snapshot.time === selectedTime && snapshot.sequence <= sequence)).at(-1) || agent.snapshots[0] || null;
+  return agent.snapshots.filter(snapshot => snapshot.time < selectedTime || (snapshot.time === selectedTime && snapshot.sequence <= sequence)).at(-1) || null;
 }
 function renderKnowledge() {
   const truth = activeTruthRisks();
   const snapshot = agentSnapshot(selectedAgent);
   const known = snapshot?.known_risk_event_ids || [];
+  const trajectoryState = Temporal.trajectoryStateAtCursor(currentRun, selectedCursor());
+  const riskDistance = risk => {
+    const first = trajectoryState[risk.satellite_a], second = trajectoryState[risk.satellite_b];
+    if (!first || !second) return risk.distance_km;
+    const a = Temporal.positionAt(first, selectedTime), b = Temporal.positionAt(second, selectedTime);
+    return Math.sqrt(a.reduce((sum, value, index) => sum + (value - b[index]) ** 2, 0));
+  };
   document.querySelector("#knowledge-panel").innerHTML = `<div class="truth-belief">
-    <div class="state-box truth"><h4>Global simulation truth</h4>${truth.length ? truth.map(risk => `<p><span class="status-dot ${risk.status === "RESOLVED" ? "delivered" : "dropped"}"></span><span class="mono">${escapeHtml(risk.risk_event_id)}</span><br>${escapeHtml(risk.satellite_a)} ↔ ${escapeHtml(risk.satellite_b)} · ${escapeHtml(formatValue(risk.distance_km))} km · ${escapeHtml(risk.status)}</p>`).join("") : `<p>No modeled risks at this time.</p>`}</div>
+    <div class="state-box truth"><h4>Global simulation truth</h4>${truth.length ? truth.map(risk => `<p><span class="status-dot ${risk.status === "RESOLVED" ? "delivered" : "dropped"}"></span><span class="mono">${escapeHtml(risk.risk_event_id)}</span><br>${escapeHtml(risk.satellite_a || "entity A")} ↔ ${escapeHtml(risk.satellite_b || "entity B")} · ${escapeHtml(formatValue(riskDistance(risk)))} km now · ${escapeHtml(risk.status)}</p>`).join("") : `<p>No risk has been recorded by this event.</p>`}</div>
     <div class="state-box belief"><h4>${escapeHtml(selectedAgent || "Agent")} local belief</h4>${known.length ? known.map(id => `<p><span class="status-dot delivered"></span>knows <span class="mono">${escapeHtml(id)}</span></p>`).join("") : `<p>No delivered risk information recorded.</p>`}${snapshot?.fuel_budget !== undefined ? `<p>Fuel proxy: <span class="mono">${escapeHtml(formatValue(snapshot.fuel_budget))}</span></p>` : ""}<p class="panel-kicker">${escapeHtml(snapshot?.source || "No snapshot available")}</p></div>
   </div>`;
 }
 
-function messageEvent(message) {
-  const preferred = message.status === "dropped" ? "MESSAGE_DROPPED" : message.status === "late" ? "MESSAGE_DELAYED_BEYOND_USEFULNESS" : "MESSAGE_DELIVERED";
-  const id = message.events.map(eventId => currentRun.events.find(event => event.event_id === eventId)).find(event => event?.event_type === preferred)?.event_id || message.events[0];
-  return id;
+function selectedCursor() { return Temporal.cursorForEvent(currentRun.events[selectedEventIndex]); }
+function messagesAtSelectedCursor() { return Temporal.messagesAtCursor(currentRun, selectedCursor()); }
+function messageEvent(message) { return message.latest_event_id || message.events.at(-1); }
+function messageTiming(message) {
+  if (message.status === "delivered") return `delivered t${message.delivered_time}`;
+  if (message.status === "dropped") return message.drop_reason || "dropped";
+  if (message.status === "late") return `late at t${message.delivered_time ?? "—"}`;
+  if (message.deliver_at !== null && message.deliver_at !== undefined) return `ETA t${message.deliver_at}`;
+  return "awaiting outcome";
 }
 function renderNetworkTable() {
-  const visible = currentRun.messages.filter(message => (message.sent_time ?? 0) <= selectedTime);
-  document.querySelector("#network-panel").innerHTML = visible.length ? `<table class="message-table"><thead><tr><th>Status</th><th>From → to</th><th>Type</th><th>Latency</th></tr></thead><tbody>${visible.map(message => `<tr class="message-row" data-message-event="${escapeHtml(messageEvent(message))}"><td><span class="status-dot ${escapeHtml(message.status)}"></span>${escapeHtml(message.status)}</td><td>${escapeHtml(shortId(message.sender_id, 8))} → ${escapeHtml(shortId(message.recipient_id, 8))}</td><td>${escapeHtml(message.message_type || "—")}</td><td>${escapeHtml(message.latency_steps ?? (message.status === "dropped" ? "—" : "pending"))}</td></tr>`).join("")}</tbody></table>` : `<div class="empty-state">No messages sent by this time.</div>`;
+  const visible = messagesAtSelectedCursor();
+  document.querySelector("#network-panel").innerHTML = visible.length ? `<table class="message-table"><thead><tr><th>State now</th><th>From → to</th><th>Type</th><th>Timing</th></tr></thead><tbody>${visible.map(message => `<tr class="message-row" data-message-event="${escapeHtml(messageEvent(message))}"><td><span class="status-dot ${escapeHtml(message.status)}"></span>${escapeHtml(message.status.replace("_", " "))}</td><td>${escapeHtml(shortId(message.sender_id, 8))} → ${escapeHtml(shortId(message.recipient_id, 8))}</td><td>${escapeHtml(message.message_type || "—")}</td><td>${escapeHtml(messageTiming(message))}</td></tr>`).join("")}</tbody></table>` : `<div class="empty-state">No message exists at the selected event.</div>`;
   document.querySelectorAll("[data-message-event]").forEach(row => row.addEventListener("click", () => selectEventById(row.dataset.messageEvent)));
 }
 
@@ -385,82 +402,128 @@ function drawTimeline() {
   const playX = left + (right-left) * selectedTime / max; context.strokeStyle = theme.accent; context.lineWidth = 1; context.beginPath(); context.moveTo(playX, 4); context.lineTo(playX, 47); context.stroke();
 }
 
-function initialTrajectories() {
-  return currentRun.events.find(event => event.event_type === "STATE_UPDATED" && event.payload.trajectories)?.payload.trajectories || {};
-}
-function trajectoriesAt(time) {
-  const trajectories = structuredClone(initialTrajectories());
-  currentRun.events.filter(event => event.event_type === "TRAJECTORY_REPROPAGATED" && event.time <= time).forEach(event => { trajectories[event.payload.agent_id] = event.payload.trajectory; });
-  return trajectories;
-}
-function positionAt(trajectory, time) {
-  const elapsed = time - Number(trajectory.reference_time || 0); const p = trajectory.position_km || [0,0,0]; const v = trajectory.velocity_km_per_step || [0,0,0];
-  return [0,1,2].map(index => Number(p[index] || 0) + Number(v[index] || 0) * elapsed);
-}
-function allSamplePositions() {
-  const ids = Object.keys(initialTrajectories()); const max = maximumTime(currentRun); const points = [];
-  const interval = Math.max(1, Math.ceil(max / 240));
-  const times = new Set([0, max, selectedTime, ...currentRun.events.map(event => event.time)]);
-  for (let time=0; time<=max; time+=interval) times.add(time);
-  [...times].sort((a,b)=>a-b).forEach(time => { const trajectories = trajectoriesAt(time); ids.forEach(id => points.push({id,time,position:positionAt(trajectories[id],time)})); });
-  return points;
-}
 function svgElement(name, attributes = {}, text = "") {
   const element = document.createElementNS("http://www.w3.org/2000/svg", name);
   Object.entries(attributes).forEach(([key,value]) => element.setAttribute(key, value));
   if (text) element.textContent = text;
   return element;
 }
+function svgTextBox(svg, x, y, text, color, anchor = "middle") {
+  const width = Math.max(48, text.length * 6.1 + 12);
+  const start = anchor === "middle" ? x - width / 2 : x;
+  svg.append(svgElement("rect", {x:start,y:y-13,width,height:18,rx:3,fill:"var(--surface-0)",stroke:"var(--border)"}));
+  svg.append(svgElement("text", {x:anchor === "middle" ? x : x+6,y,fill:color,"font-size":"10","text-anchor":anchor,"font-family":"monospace"},text));
+}
+function svgLegend(svg, items) {
+  const group = svgElement("g", {"aria-label":"Visualization legend"});
+  let x = 68;
+  for (const item of items) {
+    if (item.kind === "dot") group.append(svgElement("circle", {cx:x+5,cy:21,r:4,fill:item.color}));
+    else group.append(svgElement("line", {x1:x,y1:21,x2:x+18,y2:21,stroke:item.color,"stroke-width":item.width||2,"stroke-dasharray":item.dash||"none"}));
+    group.append(svgElement("text", {x:x+24,y:25,fill:"var(--text-2)","font-size":"10"},item.label));
+    x += 34 + item.label.length * 6.1;
+  }
+  svg.append(group);
+}
+function polyline(svg, samples, sx, sy, attributes) {
+  if (samples.length < 2) return;
+  svg.append(svgElement("polyline", {points:samples.map(item=>`${sx(item.position[0])},${sy(item.position[1])}`).join(" "),fill:"none",...attributes}));
+}
 function drawDomain() {
   const svg = document.querySelector("#domain-svg"); if (!svg) return;
   svg.replaceChildren(); svg.setAttribute("viewBox", "0 0 900 387");
-  if (visualMode === "network") { drawNetworkGraph(svg); document.querySelector("#visual-note").textContent = "Observed message traffic only · no persistent topology is modeled"; return; }
-  document.querySelector("#visual-note").textContent = "Simplified local-frame geometry · positions and thresholds in km";
-  const theme = canvasTheme(); const points = allSamplePositions(); if (!points.length) return;
+  const event = currentRun.events[selectedEventIndex];
+  const cursor = Temporal.cursorForEvent(event);
+  if (visualMode === "network") { drawNetworkGraph(svg, cursor); document.querySelector("#visual-note").textContent = `Message state through event ${selectedEventIndex + 1} · no persistent topology is modeled`; return; }
+  const trajectories = Temporal.trajectoryStateAtCursor(currentRun, cursor);
+  const ids = Object.keys(trajectories).sort();
+  if (!ids.length) {
+    document.querySelector("#visual-note").textContent = "Physical state has not been initialized at this event";
+    svg.append(svgElement("text", {x:450,y:194,fill:"var(--text-3)","font-size":"13","text-anchor":"middle"}, "No physical state recorded yet"));
+    return;
+  }
+  const horizon = maximumTime(currentRun);
+  const histories = Object.fromEntries(ids.map(id => [id, Temporal.historyForAgent(currentRun, id, cursor)]));
+  const projections = Object.fromEntries(ids.map(id => [id, Temporal.projectionForAgent(currentRun, id, cursor, horizon)]));
+  const current = Object.fromEntries(ids.map(id => [id, Temporal.positionAt(trajectories[id], selectedTime)]));
+  const points = [...Object.values(histories).flat(), ...Object.values(projections).flat(), ...Object.values(current).map(position=>({position}))];
   const xs = points.map(item=>item.position[0]), ys = points.map(item=>item.position[1]);
-  const risks = currentRun.events.filter(event=>event.event_type === "CONJUNCTION_DETECTED").map(event=>event.payload);
+  const risks = Temporal.riskStatesAtCursor(currentRun, cursor);
   const threshold = Math.max(...risks.map(r=>Number(r.threshold_km)||0), 0);
-  let minX=Math.min(...xs)-threshold*.35-10,maxX=Math.max(...xs)+threshold*.35+10,minY=Math.min(...ys)-Math.max(threshold,40),maxY=Math.max(...ys)+Math.max(threshold,40);
-  if(maxX-minX<100){minX-=50;maxX+=50;} if(maxY-minY<100){minY-=50;maxY+=50;}
-  const left=64,right=870,top=24,bottom=342; const sx=x=>left+(x-minX)/(maxX-minX)*(right-left); const sy=y=>bottom-(y-minY)/(maxY-minY)*(bottom-top);
+  const oneDimensional = Math.max(...ys)-Math.min(...ys) < 1e-6;
+  const paddingX = Math.max(12, threshold*.25, (Math.max(...xs)-Math.min(...xs))*.08);
+  let minX=Math.min(...xs)-paddingX,maxX=Math.max(...xs)+paddingX;
+  if(maxX-minX<60){const center=(minX+maxX)/2;minX=center-30;maxX=center+30;}
+  const left=64,right=870,top=52,bottom=330; const sx=x=>left+(x-minX)/(maxX-minX)*(right-left);
+  let minY, maxY, sy;
+  if (oneDimensional) { minY=-1; maxY=1; sy=()=>190; }
+  else { const spread=Math.max(...ys)-Math.min(...ys);minY=Math.min(...ys)-Math.max(10,spread*.15);maxY=Math.max(...ys)+Math.max(10,spread*.15);sy=y=>bottom-(y-minY)/(maxY-minY)*(bottom-top); }
   const grid=svgElement("g",{"aria-hidden":"true"});
-  for(let i=0;i<=5;i++){const x=left+(right-left)*i/5;const value=minX+(maxX-minX)*i/5;grid.append(svgElement("line",{x1:x,y1:top,x2:x,y2:bottom,stroke:theme.faint,"stroke-width":"1"}));grid.append(svgElement("text",{x,y:368,fill:theme.text,"font-size":"10","text-anchor":"middle","font-family":"monospace"},value.toFixed(0)));}
-  for(let i=0;i<=4;i++){const y=top+(bottom-top)*i/4;grid.append(svgElement("line",{x1:left,y1:y,x2:right,y2:y,stroke:theme.faint,"stroke-width":"1"}));}
-  grid.append(svgElement("text",{x:467,y:382,fill:theme.text,"font-size":"10","text-anchor":"middle"},"LOCAL X (km)")); svg.append(grid);
-  const ids=Object.keys(initialTrajectories()).sort(); ids.forEach((id,index)=>{const pathPoints=points.filter(item=>item.id===id).map(item=>`${sx(item.position[0])},${sy(item.position[1])}`).join(" ");svg.append(svgElement("polyline",{points:pathPoints,fill:"none",stroke:agentColors[index%agentColors.length],"stroke-width":selectedAgent===id?"3":"1.5","stroke-opacity":selectedAgent===id?"1":".65"}));});
-  const trajectories=trajectoriesAt(selectedTime); const current={}; ids.forEach((id,index)=>{const pos=positionAt(trajectories[id],selectedTime);current[id]=pos;const color=agentColors[index%agentColors.length];svg.append(svgElement("circle",{cx:sx(pos[0]),cy:sy(pos[1]),r:selectedAgent===id?"7":"5",fill:color,stroke:theme.surface,"stroke-width":"2"}));svg.append(svgElement("text",{x:sx(pos[0])+9,y:sy(pos[1])-9,fill:theme.text,"font-size":"11","font-family":"monospace"},id));});
-  risks.forEach(risk=>{const a=current[risk.satellite_a],b=current[risk.satellite_b];if(!a||!b)return;const distance=Math.sqrt(a.reduce((sum,value,index)=>sum+(value-b[index])**2,0));svg.append(svgElement("line",{x1:sx(a[0]),y1:sy(a[1]),x2:sx(b[0]),y2:sy(b[1]),stroke:palette.risk,"stroke-width":"1","stroke-dasharray":"4 4"}));const midX=(sx(a[0])+sx(b[0]))/2,midY=(sy(a[1])+sy(b[1]))/2;svg.append(svgElement("text",{x:midX,y:midY-7,fill:palette.risk,"font-size":"10","text-anchor":"middle","font-family":"monospace"},`${distance.toFixed(1)} km`));});
-  const proposal=currentRun.events.slice(0,selectedEventIndex+1).reverse().find(event=>event.event_type==="MANEUVER_PROPOSED")?.payload;if(proposal&&current[proposal.agent_id]){const pos=current[proposal.agent_id],dv=proposal.delta_v_vector_km_per_step||[0,0,0],mag=Math.max(1,Math.hypot(dv[0],dv[1]));const length=54;const x1=sx(pos[0]),y1=sy(pos[1]),x2=x1+dv[0]/mag*length,y2=y1-dv[1]/mag*length;svg.append(svgElement("line",{x1,y1,x2,y2,stroke:palette.action,"stroke-width":"2"}));svg.append(svgElement("circle",{cx:x2,cy:y2,r:"3",fill:palette.action}));svg.append(svgElement("text",{x:x2+7,y:y2+4,fill:palette.action,"font-size":"10"},"proposed Δv"));}
+  for(let i=0;i<=5;i++){const x=left+(right-left)*i/5;const value=minX+(maxX-minX)*i/5;grid.append(svgElement("line",{x1:x,y1:top,x2:x,y2:bottom,stroke:"var(--border)","stroke-width":"1"}));grid.append(svgElement("text",{x,y:357,fill:"var(--text-3)","font-size":"10","text-anchor":"middle","font-family":"monospace"},value.toFixed(0)));}
+  if(oneDimensional) grid.append(svgElement("line",{x1:left,y1:190,x2:right,y2:190,stroke:"var(--border-strong)","stroke-width":"1"}));
+  else for(let i=0;i<=4;i++){const y=top+(bottom-top)*i/4;const value=maxY-(maxY-minY)*i/4;grid.append(svgElement("line",{x1:left,y1:y,x2:right,y2:y,stroke:"var(--border)","stroke-width":"1"}));grid.append(svgElement("text",{x:56,y:y+3,fill:"var(--text-3)","font-size":"9","text-anchor":"end","font-family":"monospace"},value.toFixed(0)));}
+  grid.append(svgElement("text",{x:467,y:378,fill:"var(--text-2)","font-size":"10","text-anchor":"middle"},"LOCAL X (km)"));
+  if(!oneDimensional){const label=svgElement("text",{x:15,y:190,fill:"var(--text-2)","font-size":"10","text-anchor":"middle",transform:"rotate(-90 15 190)"},"LOCAL Y (km)");grid.append(label);}
+  svg.append(grid);
+  svgLegend(svg,[{kind:"line",label:"recorded history",color:"var(--text-2)"},{kind:"dot",label:"state now",color:"var(--accent)"},{kind:"line",label:"current-model projection",color:"var(--text-3)",dash:"6 5"},{kind:"line",label:"modeled risk",color:palette.risk,dash:"4 4"}]);
+  ids.forEach((id,index)=>{const color=agentColors[index%agentColors.length],projection=projections[id];polyline(svg,histories[id],sx,sy,{stroke:color,"stroke-width":selectedAgent===id?"3":"1.8","stroke-opacity":selectedAgent===id?"1":".72"});polyline(svg,projection,sx,sy,{stroke:color,"stroke-width":"1.5","stroke-dasharray":"6 5","stroke-opacity":".58"});if(projection.length>1){const first=projection[0].position,last=projection.at(-1).position,distance=Math.hypot(last[0]-first[0],last[1]-first[1]);if(distance>.001){svg.append(svgElement("circle",{cx:sx(last[0]),cy:sy(last[1]),r:"4",fill:"var(--surface-1)",stroke:color,"stroke-width":"1.5","stroke-dasharray":"2 2"}));svg.append(svgElement("text",{x:sx(last[0])+7,y:sy(last[1])-8,fill:color,"font-size":"9","font-family":"monospace"},`${id} projected t${horizon}`));}}});
+  risks.forEach((risk,riskIndex)=>{const a=current[risk.satellite_a],b=current[risk.satellite_b];if(!a||!b)return;const resolved=risk.status==="RESOLVED";const color=resolved?palette.execution:palette.risk;const distance=Math.sqrt(a.reduce((sum,value,index)=>sum+(value-b[index])**2,0));const yOffset=oneDimensional?36+riskIndex*28:-10-riskIndex*22;svg.append(svgElement("line",{x1:sx(a[0]),y1:sy(a[1])+yOffset,x2:sx(b[0]),y2:sy(b[1])+yOffset,stroke:color,"stroke-width":"2","stroke-dasharray":resolved?"2 5":"5 4"}));const label=`${distance.toFixed(1)} km · ${String(risk.status||"OPEN").toLowerCase()}${risk.threshold_km!==undefined?` · limit ${formatValue(risk.threshold_km)} km`:""}`;svgTextBox(svg,(sx(a[0])+sx(b[0]))/2,sy(a[1])+yOffset+20,label,color);});
+  ids.forEach((id,index)=>{const pos=current[id],color=agentColors[index%agentColors.length],x=sx(pos[0]),y=sy(pos[1]);svg.append(svgElement("circle",{cx:x,cy:y,r:selectedAgent===id?"8":"6",fill:color,stroke:"var(--surface-0)","stroke-width":"3"}));const labelY=oneDimensional?(index%2===0?y-17:y+23):y-12;svgTextBox(svg,x+(index%2===0?0:4),labelY,id,color);});
+  const visibleEvents=currentRun.events.slice(0,selectedEventIndex+1),proposalEvent=visibleEvents.slice().reverse().find(item=>item.event_type==="MANEUVER_PROPOSED"),proposal=proposalEvent?.payload;
+  if(proposal&&current[proposal.agent_id]){const maneuverId=proposal.maneuver_id,executed=visibleEvents.some(item=>item.event_type==="MANEUVER_EXECUTED"&&item.references?.maneuver_id===maneuverId),rejected=visibleEvents.some(item=>item.event_type==="MANEUVER_REJECTED"&&item.references?.maneuver_id===maneuverId),status=executed?"executed":rejected?"rejected":"proposed",color=executed?palette.execution:rejected?palette.failure:palette.action,pos=current[proposal.agent_id],dv=proposal.delta_v_vector_km_per_step||[0,0,0],mag=Math.max(1,Math.hypot(dv[0],dv[1])),length=54,x1=sx(pos[0]),y1=sy(pos[1]),x2=x1+dv[0]/mag*length,y2=y1-dv[1]/mag*length;svg.append(svgElement("line",{x1,y1,x2,y2,stroke:color,"stroke-width":"3"}));svg.append(svgElement("circle",{cx:x2,cy:y2,r:"3",fill:color}));svgTextBox(svg,(x1+x2)/2,(y1+y2)/2-42,`${status} Δv`,color);}
+  svg.setAttribute("aria-label", `${oneDimensional?"One-dimensional":"Two-dimensional"} benchmark state through event ${selectedEventIndex+1}; solid paths are recorded history and dashed paths are projections from current state`);
+  document.querySelector("#visual-note").textContent = `${oneDimensional?"1D local-frame encounter":"2D local-frame geometry"} · exact-event snapshot · dashed paths are projections, not observed future`;
 }
 
-function drawNetworkGraph(svg) {
-  const theme=canvasTheme();const agents=currentRun.agents.map(agent=>agent.agent_id);const nodes=["GROUND_TRUTH_MONITOR",...agents];const positions={};nodes.forEach((id,index)=>{const x=110+(680*(index/(Math.max(1,nodes.length-1))));const y=id==="GROUND_TRUTH_MONITOR"?90:260;positions[id]=[x,y];svg.append(svgElement("circle",{cx:x,cy:y,r:id===selectedAgent?"25":"20",fill:theme.surface,stroke:id===selectedAgent?theme.accent:theme.faint,"stroke-width":"2"}));svg.append(svgElement("text",{x,y:y+40,fill:theme.text,"font-size":"11","text-anchor":"middle","font-family":"monospace"},id.replace("GROUND_TRUTH_MONITOR","RISK MONITOR")));});
-  currentRun.messages.filter(message=>(message.sent_time??0)<=selectedTime).forEach(message=>{const from=positions[message.sender_id],to=positions[message.recipient_id];if(!from||!to)return;const color=message.status==="dropped"?palette.failure:message.status==="delivered"?palette.execution:palette.communication;svg.append(svgElement("line",{x1:from[0],y1:from[1],x2:to[0],y2:to[1],stroke:color,"stroke-width":"2","stroke-dasharray":message.status==="dropped"?"6 5":"none","stroke-opacity":".8"}));const mx=(from[0]+to[0])/2,my=(from[1]+to[1])/2;svg.append(svgElement("text",{x:mx,y:my-8,fill:color,"font-size":"10","text-anchor":"middle","font-family":"monospace"},message.status==="dropped"?"× dropped":`${message.latency_steps??"…"} step`));});
+function drawNetworkGraph(svg, cursor) {
+  const agents=currentRun.agents.map(agent=>agent.agent_id),nodes=["GROUND_TRUTH_MONITOR",...agents],positions={};
+  const messages=Temporal.messagesAtCursor(currentRun,cursor);
+  svgLegend(svg,[{kind:"line",label:"in flight",color:palette.communication,dash:"6 5"},{kind:"line",label:"delivered",color:palette.execution},{kind:"line",label:"dropped",color:palette.failure,dash:"2 5"}]);
+  nodes.forEach((id,index)=>{const isMonitor=id==="GROUND_TRUTH_MONITOR";const agentIndex=isMonitor?-1:agents.indexOf(id);const x=isMonitor?450:140+(620*(agentIndex/Math.max(1,agents.length-1)));const y=isMonitor?105:285;positions[id]=[x,y];svg.append(svgElement(isMonitor?"rect":"circle",isMonitor?{x:x-30,y:y-22,width:60,height:44,rx:8,fill:"var(--surface-0)",stroke:"var(--border-strong)","stroke-width":"2"}:{cx:x,cy:y,r:id===selectedAgent?"26":"22",fill:"var(--surface-0)",stroke:id===selectedAgent?"var(--accent)":"var(--border-strong)","stroke-width":"2"}));svg.append(svgElement("text",{x,y:y+(isMonitor?4:43),fill:"var(--text-2)","font-size":"11","text-anchor":"middle","font-family":"monospace"},isMonitor?"RISK MONITOR":id));});
+  messages.forEach((message,index)=>{const from=positions[message.sender_id],to=positions[message.recipient_id];if(!from||!to)return;const color=message.status==="dropped"?palette.failure:message.status==="delivered"?palette.execution:palette.communication;const dash=message.status==="in_flight"?"7 5":message.status==="dropped"?"2 6":"none";svg.append(svgElement("line",{x1:from[0],y1:from[1]+24,x2:to[0],y2:to[1]-24,stroke:color,"stroke-width":"2.5","stroke-dasharray":dash,"stroke-opacity":".9"}));const mx=(from[0]+to[0])/2,my=(from[1]+to[1])/2;if(message.status==="dropped"){svg.append(svgElement("line",{x1:mx-5,y1:my-5,x2:mx+5,y2:my+5,stroke:color,"stroke-width":"2"}));svg.append(svgElement("line",{x1:mx+5,y1:my-5,x2:mx-5,y2:my+5,stroke:color,"stroke-width":"2"}));}else if(message.status==="in_flight")svg.append(svgElement("circle",{cx:mx,cy:my,r:5,fill:color,stroke:"var(--surface-0)","stroke-width":"2"}));svgTextBox(svg,mx,my-13,`${message.status.replace("_"," ")} · ${messageTiming(message)}`,color);});
+  if(!messages.length)svg.append(svgElement("text",{x:450,y:195,fill:"var(--text-3)","font-size":"13","text-anchor":"middle"},"No message exists at the selected event"));
+  svg.setAttribute("aria-label", `Observed message states through event ${selectedEventIndex+1}; ${messages.length} message${messages.length===1?"":"s"} visible`);
 }
 
 function comparisonEvidenceTemplate() {
   return `<section class="panel" id="comparison-evidence"><header class="panel-header"><h2 class="panel-title">Run divergence</h2><span class="panel-kicker">reported facts, not causal claims</span></header><div id="comparison-body"></div></section>`;
 }
-function eventsAt(run,time){return run.events.filter(event=>event.time===time).map(event=>event.title);}
+function comparisonSnapshot(run) {
+  const cursor=Temporal.endOfTime(selectedTime),events=Temporal.eventsThrough(run,cursor),messages=Temporal.messagesAtCursor(run,cursor),counts=Temporal.messageStatusCounts(messages),risks=Temporal.riskStatesAtCursor(run,cursor);
+  return {messages,counts,risks,decisions:events.filter(event=>event.event_type==="PROTOCOL_DECISION").length,executed:events.filter(event=>event.event_type==="MANEUVER_EXECUTED").length};
+}
+function comparisonSnapshotLine(snapshot){const messageParts=[snapshot.counts.delivered?`${snapshot.counts.delivered} delivered`:null,snapshot.counts.in_flight?`${snapshot.counts.in_flight} in flight`:null,snapshot.counts.dropped?`${snapshot.counts.dropped} dropped`:null,snapshot.counts.late?`${snapshot.counts.late} late`:null].filter(Boolean);const open=snapshot.risks.filter(risk=>risk.status!=="RESOLVED").length;return `${messageParts.join(" · ")||"no messages"} · ${snapshot.decisions} decision(s) · ${snapshot.executed} executed · ${open} open risk(s)`;}
 function comparisonFactSummary() {
-  const [left,right]=comparison.runs;const leftMessages=left.messages.reduce((acc,item)=>({...acc,[item.message_id]:item.status}),{});const rightMessages=right.messages.reduce((acc,item)=>({...acc,[item.message_id]:item.status}),{});const messageDiff=Object.keys({...leftMessages,...rightMessages}).filter(key=>leftMessages[key]!==rightMessages[key]).length;
+  const [left,right]=comparison.runs,leftSnapshot=comparisonSnapshot(left),rightSnapshot=comparisonSnapshot(right);const leftMessages=leftSnapshot.messages.reduce((acc,item)=>({...acc,[item.message_id]:item.status}),{});const rightMessages=rightSnapshot.messages.reduce((acc,item)=>({...acc,[item.message_id]:item.status}),{});const messageDiff=Object.keys({...leftMessages,...rightMessages}).filter(key=>leftMessages[key]!==rightMessages[key]).length;
   return `${comparison.config_differences.length} configuration difference(s) · ${comparison.metric_differences.length} metric difference(s) · ${messageDiff} message-status difference(s)`;
 }
-function renderComparisonEvidence(){const [left,right]=comparison.runs;const configRows=comparison.config_differences.slice(0,12).map(diff=>`<tr><td>${escapeHtml(diff.field)}</td><td>${escapeHtml(formatValue(diff.left))}</td><td>${escapeHtml(formatValue(diff.right))}</td></tr>`).join("");const metricRows=comparison.metric_differences.filter(diff=>["resolved_conjunctions","unresolved_conjunctions","messages_dropped","messages_delivered","maneuvers_executed","maneuvers_rejected","total_delta_v_used_km_per_step"].includes(diff.metric)).map(diff=>`<tr><td>${escapeHtml(prettyKey(diff.metric))}</td><td>${escapeHtml(formatValue(diff.left))}</td><td>${escapeHtml(formatValue(diff.right))}</td><td>${escapeHtml(diff.delta===null?"—":formatValue(diff.delta))}</td></tr>`).join("");document.querySelector("#comparison-body").innerHTML=`<div class="comparison-overview"><div class="compare-run"><h3>${escapeHtml(left.summary.protocol)}</h3><div class="outcome ${classForStatus(left.summary.outcome)}">${escapeHtml(left.summary.outcome)}</div><p class="panel-kicker">At t=${selectedTime}: ${escapeHtml(eventsAt(left,selectedTime).join(" · ")||"no event")}</p></div><div class="compare-run"><h3>${escapeHtml(right.summary.protocol)}</h3><div class="outcome ${classForStatus(right.summary.outcome)}">${escapeHtml(right.summary.outcome)}</div><p class="panel-kicker">At t=${selectedTime}: ${escapeHtml(eventsAt(right,selectedTime).join(" · ")||"no event")}</p></div></div><div class="difference-columns"><div><h3 class="section-label">Configuration differences</h3><table class="diff-table"><thead><tr><th>Field</th><th>${escapeHtml(left.summary.protocol)}</th><th>${escapeHtml(right.summary.protocol)}</th></tr></thead><tbody>${configRows||"<tr><td colspan=3>None</td></tr>"}</tbody></table></div><div><h3 class="section-label">Metric differences</h3><table class="diff-table"><thead><tr><th>Metric</th><th>A</th><th>B</th><th>Δ B−A</th></tr></thead><tbody>${metricRows||"<tr><td colspan=4>None</td></tr>"}</tbody></table></div></div>`;document.querySelector(".comparison-fact").innerHTML=`Synchronized at <span class="mono">t = ${selectedTime}</span> · ${escapeHtml(comparisonFactSummary())}`;}
+function renderComparisonEvidence(){const [left,right]=comparison.runs,leftSnapshot=comparisonSnapshot(left),rightSnapshot=comparisonSnapshot(right);const configRows=comparison.config_differences.slice(0,12).map(diff=>`<tr><td>${escapeHtml(diff.field)}</td><td>${escapeHtml(formatValue(diff.left))}</td><td>${escapeHtml(formatValue(diff.right))}</td></tr>`).join("");const metricRows=comparison.metric_differences.filter(diff=>["resolved_conjunctions","unresolved_conjunctions","messages_dropped","messages_delivered","maneuvers_executed","maneuvers_rejected","total_delta_v_used_km_per_step"].includes(diff.metric)).map(diff=>`<tr><td>${escapeHtml(prettyKey(diff.metric))}</td><td>${escapeHtml(formatValue(diff.left))}</td><td>${escapeHtml(formatValue(diff.right))}</td><td>${escapeHtml(diff.delta===null?"—":formatValue(diff.delta))}</td></tr>`).join("");const card=(run,snapshot,label)=>`<div class="compare-run"><div class="compare-card-head"><h3>${escapeHtml(label)} · ${escapeHtml(run.summary.protocol)}</h3><span class="outcome ${classForStatus(run.summary.outcome)}">final ${escapeHtml(run.summary.outcome)}</span></div><div class="snapshot-label">End of t=${selectedTime}</div><p>${escapeHtml(comparisonSnapshotLine(snapshot))}</p></div>`;document.querySelector("#comparison-body").innerHTML=`<div class="comparison-overview">${card(left,leftSnapshot,"A")}${card(right,rightSnapshot,"B")}</div><div class="difference-columns"><div><h3 class="section-label">Configuration differences</h3><table class="diff-table"><thead><tr><th>Field</th><th>A</th><th>B</th></tr></thead><tbody>${configRows||"<tr><td colspan=3>None</td></tr>"}</tbody></table></div><div><h3 class="section-label">Final metric differences</h3><table class="diff-table"><thead><tr><th>Metric</th><th>A</th><th>B</th><th>Δ B−A</th></tr></thead><tbody>${metricRows||"<tr><td colspan=4>None</td></tr>"}</tbody></table></div></div>`;document.querySelector(".comparison-fact").innerHTML=`End-of-step state at <span class="mono">t = ${selectedTime}</span> · ${escapeHtml(comparisonFactSummary())}`;}
 
 function mountSweep(manifest) {
   stopPlayback(); currentRun=null; comparison=null; rootManifest=manifest;
   const numericMetrics=["resolved_conjunctions","unresolved_conjunctions","messages_dropped","messages_delivered","maneuvers_executed","maneuvers_rejected","total_delta_v_used_km_per_step"];
   sweepState.x=manifest.parameters.find(parameter=>parameter.includes("packet_loss"))||manifest.parameters[0]||null;
   sweepState.y=manifest.parameters.find(parameter=>parameter.includes("latency"))||manifest.parameters.find(parameter=>parameter!==sweepState.x)||sweepState.x;
-  app.innerHTML=`<div class="app-shell"><header class="topbar"><div class="brand-block"><div class="wordmark">THEMIS</div><div class="brand-rule"></div><div class="run-heading"><h1>Sweep analysis</h1><div class="run-subtitle"><span>${manifest.records.length} experiment cells</span><span class="dot-separator">·</span><span>artifact-driven</span></div></div></div><div class="top-actions"><span class="panel-kicker">${escapeHtml(shortId(manifest.path,35))}</span><button class="icon-button" id="theme-toggle" aria-label="Toggle theme">◐</button></div></header><main class="sweep-shell"><section class="sweep-hero"><div><h1>Completed parameter sweep</h1><p>Explore aggregate outcomes, then open the underlying causal trace.</p></div><div class="sweep-controls"><div class="field"><label for="x-param">X parameter</label><select id="x-param">${manifest.parameters.map(p=>`<option ${p===sweepState.x?"selected":""}>${escapeHtml(p)}</option>`).join("")}</select></div><div class="field"><label for="y-param">Y parameter</label><select id="y-param">${manifest.parameters.map(p=>`<option ${p===sweepState.y?"selected":""}>${escapeHtml(p)}</option>`).join("")}</select></div><div class="field"><label for="metric-select">Metric</label><select id="metric-select">${numericMetrics.map(m=>`<option>${escapeHtml(m)}</option>`).join("")}</select></div></div></section><section class="sweep-grid"><article class="panel"><header class="panel-header"><h2 class="panel-title">Parameter response</h2><span class="panel-kicker" id="chart-caption"></span></header><div class="chart-area"><canvas id="sweep-canvas" role="img" aria-label="Sweep parameter heatmap"></canvas></div></article><article class="panel"><header class="panel-header"><h2 class="panel-title">Outcome distribution</h2><span class="panel-kicker">across all cells</span></header><div class="outcome-bars" id="outcome-bars"></div></article></section><section class="panel"><header class="panel-header"><h2 class="panel-title">Experiment cells</h2><span class="panel-kicker">click a run to inspect its trace</span></header><div class="sweep-table-wrap" id="sweep-table"></div></section></main></div>`;
+  app.innerHTML=`<div class="app-shell"><header class="topbar"><div class="brand-block"><div class="wordmark">THEMIS</div><div class="brand-rule"></div><div class="run-heading"><h1>Sweep analysis</h1><div class="run-subtitle"><span>${manifest.records.length} completed runs</span><span class="dot-separator">·</span><span>artifact-driven</span></div></div></div><div class="top-actions"><span class="panel-kicker">${escapeHtml(shortId(manifest.path,35))}</span><button class="icon-button" id="theme-toggle" aria-label="Toggle theme">◐</button></div></header><main class="sweep-shell"><section class="sweep-hero"><div><h1>Completed parameter sweep</h1><p>Each heatmap cell aggregates matching runs; open any run for its causal trace.</p></div><div class="sweep-controls"><div class="field"><label for="x-param">X parameter</label><select id="x-param">${manifest.parameters.map(p=>`<option ${p===sweepState.x?"selected":""}>${escapeHtml(p)}</option>`).join("")}</select></div><div class="field"><label for="y-param">Y parameter</label><select id="y-param">${manifest.parameters.map(p=>`<option ${p===sweepState.y?"selected":""}>${escapeHtml(p)}</option>`).join("")}</select></div><div class="field"><label for="metric-select">Metric</label><select id="metric-select">${numericMetrics.map(m=>`<option>${escapeHtml(m)}</option>`).join("")}</select></div></div></section><section class="sweep-grid"><article class="panel"><header class="panel-header"><h2 class="panel-title">Parameter response</h2><span class="panel-kicker" id="chart-caption"></span></header><div class="chart-area"><canvas id="sweep-canvas" role="img" aria-label="Sweep parameter heatmap"></canvas><div class="heat-legend" id="sweep-legend" aria-label="Heatmap color scale"></div></div></article><article class="panel"><header class="panel-header"><h2 class="panel-title">Outcome distribution</h2><span class="panel-kicker">across all runs</span></header><div class="outcome-bars" id="outcome-bars"></div></article></section><section class="panel"><header class="panel-header"><h2 class="panel-title">Experiment runs</h2><span class="panel-kicker">click a run to inspect its trace</span></header><div class="sweep-table-wrap" id="sweep-table"></div></section></main></div>`;
   themeHandler();["x-param","y-param","metric-select"].forEach(id=>document.querySelector(`#${id}`).addEventListener("change",()=>{sweepState.x=document.querySelector("#x-param").value;sweepState.y=document.querySelector("#y-param").value;sweepState.metric=document.querySelector("#metric-select").value;drawSweepChart();renderSweepTable();}));
   renderSweepOutcomes();renderSweepTable();drawSweepChart();window.onkeydown=null;
 }
 function uniqueValues(parameter){return [...new Set(rootManifest.records.map(record=>String(record[parameter])))].sort((a,b)=>Number(a)-Number(b)||a.localeCompare(b));}
 function renderSweepOutcomes(){const counts={};rootManifest.records.forEach(record=>counts[record.outcome||record.status]=(counts[record.outcome||record.status]||0)+1);const max=Math.max(1,...Object.values(counts));document.querySelector("#outcome-bars").innerHTML=Object.entries(counts).map(([key,value])=>`<div class="bar-row"><div class="bar-head"><span>${escapeHtml(key)}</span><span class="mono">${value}</span></div><div class="bar-track"><div class="bar-fill ${escapeHtml(key)}" data-bar-width="${value/max*100}"></div></div></div>`).join("");document.querySelectorAll("[data-bar-width]").forEach(bar=>bar.style.width=`${bar.dataset.barWidth}%`);}
 function renderSweepTable(){const records=rootManifest.records.slice(0,200);const params=[...new Set([sweepState.x,sweepState.y].filter(Boolean))];document.querySelector("#sweep-table").innerHTML=`<table class="sweep-table"><thead><tr><th>Run</th>${params.map(p=>`<th>${escapeHtml(p)}</th>`).join("")}<th>${escapeHtml(sweepState.metric)}</th><th>Outcome</th></tr></thead><tbody>${records.map(record=>`<tr><td>${record.run_available?`<button class="open-run" data-run-path="${escapeHtml(record.run_path)}">${escapeHtml(shortId(record.run_id,18))}</button>`:escapeHtml(shortId(record.run_id||"failed",18))}</td>${params.map(p=>`<td>${escapeHtml(formatValue(record[p]))}</td>`).join("")}<td>${escapeHtml(formatValue(record[sweepState.metric]))}</td><td class="${classForStatus(record.outcome)}">${escapeHtml(record.outcome||record.status)}</td></tr>`).join("")}</tbody></table>`;document.querySelectorAll("[data-run-path]").forEach(button=>button.addEventListener("click",async()=>{button.textContent="Loading…";const response=await fetch(`/api/run?path=${encodeURIComponent(button.dataset.runPath)}`);const run=await response.json();if(!response.ok){alert(run.error);return;}mountRun(run);}));}
-function drawSweepChart(){const canvas=document.querySelector("#sweep-canvas");if(!canvas)return;const {context,width,height}=setupCanvas(canvas),theme=canvasTheme(),xs=uniqueValues(sweepState.x),ys=uniqueValues(sweepState.y);context.clearRect(0,0,width,height);const left=78,top=32,right=width-24,bottom=height-58,cellW=(right-left)/Math.max(1,xs.length),cellH=(bottom-top)/Math.max(1,ys.length);const cells=[];ys.forEach((y,yi)=>xs.forEach((x,xi)=>{const records=rootManifest.records.filter(r=>String(r[sweepState.x])===x&&String(r[sweepState.y])===y);const nums=records.map(r=>Number(r[sweepState.metric])).filter(Number.isFinite);const value=nums.length?nums.reduce((a,b)=>a+b,0)/nums.length:null;cells.push({x,y,xi,yi,value,count:nums.length});}));const values=cells.map(c=>c.value).filter(v=>v!==null),min=Math.min(...values,0),max=Math.max(...values,1);cells.forEach(cell=>{const ratio=cell.value===null?0:(cell.value-min)/Math.max(.0001,max-min);context.fillStyle=cell.value===null?theme.surface:`rgba(115,167,255,${.12+ratio*.78})`;context.fillRect(left+cell.xi*cellW+1,top+cell.yi*cellH+1,cellW-2,cellH-2);context.fillStyle=ratio>.58?"#07101d":theme.text;context.font="11px ui-monospace, monospace";context.textAlign="center";context.fillText(cell.value===null?"—":formatValue(cell.value),left+(cell.xi+.5)*cellW,top+(cell.yi+.5)*cellH+4);});context.fillStyle=theme.text;context.font="10px ui-monospace, monospace";xs.forEach((x,i)=>context.fillText(x,left+(i+.5)*cellW,bottom+20));context.textAlign="right";ys.forEach((y,i)=>context.fillText(y,left-9,top+(i+.5)*cellH+4));context.textAlign="center";context.fillText(sweepState.x,(left+right)/2,height-12);context.save();context.translate(15,(top+bottom)/2);context.rotate(-Math.PI/2);context.fillText(sweepState.y,0,0);context.restore();document.querySelector("#chart-caption").textContent=`mean ${sweepState.metric} across seeds`;}
+function drawSweepChart(){
+  const canvas=document.querySelector("#sweep-canvas");if(!canvas)return;
+  const {context,width,height}=setupCanvas(canvas),theme=canvasTheme(),xs=uniqueValues(sweepState.x),ys=uniqueValues(sweepState.y);
+  context.clearRect(0,0,width,height);
+  const left=78,top=24,right=width-24,bottom=height-58,cellW=(right-left)/Math.max(1,xs.length),cellH=(bottom-top)/Math.max(1,ys.length),cells=[];
+  ys.forEach((y,yi)=>xs.forEach((x,xi)=>{const records=rootManifest.records.filter(r=>String(r[sweepState.x])===x&&String(r[sweepState.y])===y);const nums=records.map(r=>Number(r[sweepState.metric])).filter(Number.isFinite);const value=nums.length?nums.reduce((a,b)=>a+b,0)/nums.length:null;cells.push({x,y,xi,yi,value,count:nums.length,minimum:nums.length?Math.min(...nums):null,maximum:nums.length?Math.max(...nums):null});}));
+  const values=cells.map(cell=>cell.value).filter(value=>value!==null),min=values.length?Math.min(...values):0,max=values.length?Math.max(...values):0,span=Math.max(.0001,max-min);
+  cells.forEach(cell=>{const ratio=cell.value===null?0:(cell.value-min)/span,x=left+cell.xi*cellW+1,y=top+cell.yi*cellH+1;context.fillStyle=cell.value===null?theme.surface:`rgba(115,167,255,${.18+ratio*.72})`;context.fillRect(x,y,cellW-2,cellH-2);context.fillStyle=ratio>.58?"#07101d":theme.text;context.textAlign="center";context.font="600 12px ui-monospace, monospace";context.fillText(cell.value===null?"no data":`μ ${formatValue(cell.value)}`,x+cellW/2,y+cellH/2-3);context.font="9px ui-monospace, monospace";context.fillText(cell.count?`n=${cell.count} · ${formatValue(cell.minimum)}–${formatValue(cell.maximum)}`:"n=0",x+cellW/2,y+cellH/2+14);});
+  context.fillStyle=theme.text;context.font="10px ui-monospace, monospace";context.textAlign="center";xs.forEach((x,i)=>context.fillText(x,left+(i+.5)*cellW,bottom+20));context.textAlign="right";ys.forEach((y,i)=>context.fillText(y,left-9,top+(i+.5)*cellH+4));context.textAlign="center";context.fillText(sweepState.x,(left+right)/2,height-12);context.save();context.translate(15,(top+bottom)/2);context.rotate(-Math.PI/2);context.fillText(sweepState.y,0,0);context.restore();
+  document.querySelector("#chart-caption").textContent=`cell mean · ${sweepState.metric}`;
+  document.querySelector("#sweep-legend").innerHTML=`<span>${escapeHtml(formatValue(min))}</span><span class="heat-ramp" aria-hidden="true"></span><span>${escapeHtml(formatValue(max))}</span><span class="legend-note">Each cell: mean, replicate count, observed range</span>`;
+  canvas.setAttribute("aria-label", `Heatmap of mean ${sweepState.metric}; values range from ${formatValue(min)} to ${formatValue(max)} and each cell reports replicate count and observed range`);
+}
 
 window.addEventListener("resize",()=>{if(currentRun){drawTimeline();drawDomain();}else if(rootManifest?.kind==="sweep")drawSweepChart();});
 boot();

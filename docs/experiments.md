@@ -23,6 +23,18 @@ Run `themis sweep SWEEP.toml`. Execution is intentionally sequential and easy to
 
 Resumability assumes an existing summary is complete and was not manually edited. Delete or move that individual run directory to force recomputation.
 
+## Replicate-aware analysis
+
+Include multiple `experiment.seed` values when estimating variability. After a sweep, run:
+
+```bash
+themis analyze results/network-sweep-sweep
+```
+
+By default, dotted sweep parameters other than `experiment.seed` define experimental conditions. Themis writes long-form `analysis.csv` and self-describing `analysis.json` with sample size, seed count, mean, sample standard deviation, standard error, and a two-sided 95% Student-t interval for every numeric metric. Failed runs and observational runtime are excluded. Select fields explicitly with repeated `--group-by` and `--metric` options.
+
+The interval assumes seeds are independent replicates of the same condition and that a mean/t interval is appropriate. It is descriptive evidence, not an automatic hypothesis test or proof of external validity. With one replicate, dispersion and interval fields are empty. See [methodology](methodology.md) before reporting results.
+
 ## Artifact contract
 
 - `config.toml`: complete resolved input and the primary reproduction record.
@@ -30,5 +42,7 @@ Resumability assumes an existing summary is complete and was not manually edited
 - `metrics.csv`: one row suitable for dataframe ingestion.
 - `events.jsonl`: ordered lifecycle events with time, sequence, type, and payload.
 - `metadata.json`: Themis version, git commit where available, creation timestamp, determinism note, and user metadata.
+
+Core JSON Schemas ship in `themis/schemas/` and can be located programmatically with `themis.artifacts.schema_path()`. Readers must tolerate unknown payload and metric fields within the same artifact schema generation. Use `themis.artifacts.load_run()` to stream events without importing the viewer.
 
 Output directories are user-selected. Themis creates files below that directory but does not delete old data or invoke a shell.

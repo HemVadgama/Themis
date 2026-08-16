@@ -7,8 +7,9 @@ Experiment files are UTF-8 TOML. Unknown sections and fields fail validation; nu
 | Table | Fields | Meaning |
 |---|---|---|
 | `experiment` | `name` (required), `seed`, `metadata` | Identity, controlled randomness, optional user labels. Seed is a non-negative integer. |
+| `benchmark` | `name` | Versioned benchmark identity. This release supports `spacecraft-coordination-v1`. |
 | `scenario` | `preset`, `name`, `agent_count`, `duration_steps`, `decision_deadline_steps`, `risk_reassessment_horizon_steps`, `initial_states`, `mission_priorities`, `fuel_budgets` | Built-in initial condition and explicit overrides. Initial states are 3-component position and velocity vectors. |
-| `protocol` | `name` | `centralized`, `greedy`, or `example-lowest-id`. |
+| `protocol` | `name` | A built-in or installed `themis.protocols` entry-point name. |
 | `network` | `latency_steps`, `packet_loss_rate`, `bandwidth_limit_per_agent` | Fixed step latency, seeded independent loss in `[0,1]`, and per-sender/per-step message cap. |
 | `safety` | `conjunction_threshold_km`, `maneuver_threshold_km`, `secondary_conjunction_threshold_km`, `allow_secondary_risk` | Distance thresholds and whether a validator may accept a proposal with a detected secondary risk. |
 | `maneuver` | `min_delta_v_km_per_step`, `max_delta_v_km_per_step`, `default_fuel_budget` | Bounds and benchmark resource budget. Minimum may not exceed maximum. |
@@ -17,7 +18,7 @@ Experiment files are UTF-8 TOML. Unknown sections and fields fail validation; nu
 
 Defaults come from the selected preset. Built-in presets are `closed_loop_resolved`, `closed_loop_insufficient_fuel`, `closed_loop_late_response`, `closed_loop_packet_loss`, `closed_loop_secondary`, `closed_loop_protocol_difference`, and `closed_loop_execution_error`.
 
-The CLI intentionally does not import protocol classes or execute code named in a configuration file. Protocol registration is an explicit source-code operation.
+The CLI never imports a module path supplied by a configuration file. A selected external protocol is loaded from installed package metadata. Installing a protocol package is therefore a trust decision; merely opening an untrusted TOML file is not.
 
 ## Inline initial state
 

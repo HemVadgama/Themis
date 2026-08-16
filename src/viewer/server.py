@@ -53,7 +53,7 @@ class ViewerRequestHandler(BaseHTTPRequestHandler):
             return
 
         relative = "index.html" if parsed.path in {"", "/"} else parsed.path.lstrip("/")
-        if relative not in {"index.html", "app.js", "styles.css"}:
+        if relative not in {"index.html", "app.js", "temporal.js", "styles.css"}:
             self._send(404, b"Not found", "text/plain; charset=utf-8")
             return
         resource = STATIC_ROOT.joinpath(relative)

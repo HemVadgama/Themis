@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/HemVadgama/Themis/raw/main/themis/schemas/analysis-v1.schema.json",
+  "title": "Themis sweep analysis v1",
+  "type": "object",
+  "required": ["analysis_schema_version", "source", "run_counts", "method", "group_by", "metrics", "rows"],
+  "properties": {
+    "analysis_schema_version": {"const": 1},
+    "source": {"type": "string"},
+    "run_counts": {
+      "type": "object",
+      "required": ["successful", "failed_excluded"],
+      "properties": {
+        "successful": {"type": "integer", "minimum": 1},
+        "failed_excluded": {"type": "integer", "minimum": 0}
+      }
+    },
+    "method": {"type": "object"},
+    "group_by": {"type": "array", "items": {"type": "string"}},
+    "metrics": {"type": "array", "items": {"type": "string"}},
+    "rows": {"type": "array", "items": {"type": "object"}}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/HemVadgama/Themis/raw/main/themis/schemas/summary-v2.schema.json",
+  "title": "Themis run summary v2",
+  "type": "object",
+  "required": ["run_id", "experiment", "scenario", "protocol", "seed", "outcome", "metrics"],
+  "properties": {
+    "run_id": {"type": "string", "minLength": 1},
+    "experiment": {"type": "string", "minLength": 1},
+    "benchmark": {"type": "string", "minLength": 1},
+    "scenario": {"type": "string", "minLength": 1},
+    "protocol": {"type": "string", "minLength": 1},
+    "seed": {"type": "integer", "minimum": 0},
+    "outcome": {"enum": ["resolved", "unresolved", "no-conjunctions"]},
+    "metrics": {
+      "type": "object",
+      "description": "Benchmark-defined scalar and structured measurements. Consumers must ignore unknown metrics.",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,5 +1,7 @@
 import json
 from pathlib import Path
+import subprocess
+import sys
 from threading import Thread
 from urllib.request import urlopen
 
@@ -15,6 +17,16 @@ from src.viewer.server import create_server
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_base_cli_import_does_not_load_viewer_server():
+    completed = subprocess.run(
+        [sys.executable, "-c", "import sys, src.cli; assert 'src.viewer.server' not in sys.modules"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr
 
 
 def make_run(tmp_path, example="basic.toml", protocol=None):
@@ -163,6 +175,7 @@ def test_viewer_http_api_and_packaged_frontend_smoke(tmp_path):
         manifest = json.loads(urlopen(f"http://127.0.0.1:{port}/api/manifest").read())
         html = urlopen(f"http://127.0.0.1:{port}/").read().decode()
         script = urlopen(f"http://127.0.0.1:{port}/app.js").read().decode()
+        temporal = urlopen(f"http://127.0.0.1:{port}/temporal.js").read().decode()
     finally:
         server.shutdown()
         server.server_close()
@@ -170,14 +183,17 @@ def test_viewer_http_api_and_packaged_frontend_smoke(tmp_path):
 
     assert manifest["kind"] == "run"
     assert "Experiment Viewer" in html
+    assert 'src="/temporal.js"' in html
     assert "drawTimeline" in script
     assert "renderInspector" in script
     assert "renderComparisonEvidence" in script
+    assert "trajectoryStateAtCursor" in temporal
+    assert "messagesAtCursor" in temporal
 
 
 def test_view_cli_passes_read_only_server_options(monkeypatch, tmp_path):
     calls = []
-    monkeypatch.setattr("src.cli.serve_viewer", lambda *args, **kwargs: calls.append((args, kwargs)))
+    monkeypatch.setattr("src.viewer.server.serve_viewer", lambda *args, **kwargs: calls.append((args, kwargs)))
 
     assert main(["view", str(tmp_path), "--compare", str(tmp_path / "other"), "--host", "localhost", "--port", "8123", "--no-open"]) == 0
     assert calls == [((str(tmp_path),), {"compare": str(tmp_path / "other"), "host": "localhost", "port": 8123, "open_browser": False})]

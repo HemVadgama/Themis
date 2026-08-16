@@ -96,6 +96,7 @@ def write_run_artifacts(configuration, result):
     summary = {
         "run_id": run_id,
         "experiment": configuration.name,
+        "benchmark": configuration.benchmark,
         "scenario": result["scenario"],
         "protocol": result["protocol"],
         "seed": result["seed"],
@@ -105,15 +106,16 @@ def write_run_artifacts(configuration, result):
     (run_directory / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     with (run_directory / "metrics.csv").open("w", newline="", encoding="utf-8") as handle:
         flat_metrics = {key: json.dumps(value, sort_keys=True) if isinstance(value, (dict, list)) else value for key, value in result["metrics"].items()}
-        writer = csv.DictWriter(handle, fieldnames=["run_id", "experiment", "scenario", "protocol", "seed", *flat_metrics])
+        writer = csv.DictWriter(handle, fieldnames=["run_id", "experiment", "benchmark", "scenario", "protocol", "seed", *flat_metrics])
         writer.writeheader()
-        writer.writerow({"run_id": run_id, "experiment": configuration.name, "scenario": result["scenario"], "protocol": result["protocol"], "seed": result["seed"], **flat_metrics})
+        writer.writerow({"run_id": run_id, "experiment": configuration.name, "benchmark": configuration.benchmark, "scenario": result["scenario"], "protocol": result["protocol"], "seed": result["seed"], **flat_metrics})
     with (run_directory / "events.jsonl").open("w", encoding="utf-8") as handle:
         for event in result["trace"]["events"]:
             handle.write(json.dumps(event, sort_keys=True) + "\n")
     metadata = {
         "artifact_schema_version": ARTIFACT_SCHEMA_VERSION,
         "run_id": run_id,
+        "benchmark": configuration.benchmark,
         "themis_version": __version__,
         "git_commit": _git_commit(configuration.source_path),
         "created_at_utc": datetime.now(timezone.utc).isoformat(),

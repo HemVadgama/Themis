@@ -7,13 +7,12 @@ from pathlib import Path
 import sys
 
 from src.artifacts import write_run_artifacts
+from src.analysis import AnalysisError, analyze_sweep
 from src.batch import run_sweep
 from src.configuration import ConfigurationError, load_experiment_config
 from src.protocols.registry import available_protocols
 from src.simulation.runner import run_closed_loop_scenario
 from src.version import __version__
-from src.viewer.model import ViewerArtifactError
-from src.viewer.server import serve_viewer
 
 
 def _parser():
@@ -38,6 +37,12 @@ def _parser():
 
     sweep = commands.add_parser("sweep", help="Run a TOML parameter grid; completed run IDs are resumable.")
     sweep.add_argument("config", help="Path to a sweep TOML file.")
+
+    analyze = commands.add_parser("analyze", help="Compute replicate-aware statistics for a completed sweep.")
+    analyze.add_argument("path", help="Sweep directory or aggregate.json path.")
+    analyze.add_argument("--group-by", action="append", help="Aggregate field defining a condition; repeat as needed.")
+    analyze.add_argument("--metric", action="append", help="Numeric metric to summarize; repeat as needed.")
+    analyze.add_argument("--output-dir", help="Analysis output directory (default: <sweep>/analysis).")
 
     validate = commands.add_parser("validate", help="Validate and resolve an experiment config without running it.")
     validate.add_argument("config", help="Path to an experiment TOML file.")
@@ -68,6 +73,7 @@ def _overrides(args):
 def _print_run(summary, directory):
     metrics = summary["metrics"]
     print(f"Run: {summary['run_id']}")
+    print(f"Benchmark: {summary['benchmark']}")
     print(f"Scenario / protocol / seed: {summary['scenario']} / {summary['protocol']} / {summary['seed']}")
     print(f"Outcome: {summary['outcome']}")
     print(f"Safety: {metrics['original_conjunctions']} initial, {metrics['resolved_conjunctions']} resolved, {metrics['unresolved_conjunctions']} unresolved, {metrics['safety_validation_failures']} validator rejection(s)")
@@ -130,6 +136,17 @@ def main(argv=None):
             print(f"Aggregate: {directory / 'aggregate.csv'} ({failures} failure(s))")
             if failures:
                 return 1
+        elif args.command == "analyze":
+            directory, analysis = analyze_sweep(
+                args.path,
+                group_by=args.group_by,
+                metrics=args.metric,
+                output_directory=args.output_dir,
+            )
+            print(
+                f"Analysis: {directory / 'analysis.csv'} "
+                f"({len(analysis['rows'])} condition/metric row(s))"
+            )
         elif args.command == "validate":
             config = load_experiment_config(args.config)
             print(json.dumps(config.resolved_dict(), indent=2, sort_keys=True))
@@ -137,8 +154,9 @@ def main(argv=None):
         elif args.command == "replay":
             _replay(args.path)
         elif args.command == "view":
+            from src.viewer.server import serve_viewer
             serve_viewer(args.path, compare=args.compare, host=args.host, port=args.port, open_browser=not args.no_open)
-    except (ConfigurationError, ViewerArtifactError, OSError, ValueError, json.JSONDecodeError) as error:
+    except (AnalysisError, ConfigurationError, OSError, ValueError, json.JSONDecodeError) as error:
         if args.debug:
             raise
         print(f"Error: {error}", file=sys.stderr)

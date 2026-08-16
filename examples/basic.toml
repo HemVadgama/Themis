@@ -2,6 +2,9 @@
 name = "basic-conjunction"
 seed = 42
 
+[benchmark]
+name = "spacecraft-coordination-v1"
+
 [scenario]
 preset = "closed_loop_resolved"
 duration_steps = 4

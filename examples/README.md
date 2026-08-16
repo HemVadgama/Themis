@@ -9,7 +9,7 @@ not flight-dynamics quantities.
 | Protocol comparison | `themis compare examples/protocol-comparison.toml --protocol centralized --protocol greedy` | Both protocols see the same initial truth; their selected maneuvering agent and resource burden can differ. |
 | Network degradation | `themis run examples/network-degradation.toml` | Greedy coordination depends on delivered alerts; seeded loss or latency can leave the risk unresolved. |
 | Safety rejection | `themis run examples/safety-rejection.toml` | A proposal is rejected with `INSUFFICIENT_FUEL`; physical truth is not mutated. |
-| Parameter sweep | `themis sweep examples/network-sweep.toml` | Runs 36 protocol/network/seed combinations and writes aggregate CSV and JSON. |
+| Parameter sweep | `themis sweep examples/network-sweep.toml` | Runs 36 protocol/network/seed combinations and writes aggregate CSV and JSON; follow with `themis analyze results/network-sweep-sweep`. |
 | Viewer demo | `themis run examples/viewer-demo.toml` | One risk alert is delivered and one is dropped; local knowledge, a valid action, execution, and resolution are all visible in the viewer. |
 | Viewer blackout comparison | `themis run examples/viewer-demo-blackout.toml` | Both alerts are dropped, so greedy coordination cannot act; compare it with `viewer-demo` to inspect the divergence. |
 

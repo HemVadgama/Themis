@@ -22,13 +22,15 @@ class ExperimentConfiguration:
     output_directory: Path
     metadata: dict = field(default_factory=dict)
     source_path: Path | None = None
+    benchmark: str = "spacecraft-coordination-v1"
 
     def resolved_dict(self):
         scenario = self.scenario
         return {
             "experiment": {"name": self.name, "seed": self.seed, "metadata": self.metadata},
+            "benchmark": {"name": self.benchmark},
             "scenario": {
-                "preset": "closed_loop_resolved",
+                "preset": scenario.preset,
                 "name": scenario.name,
                 "agent_count": scenario.agent_count,
                 "duration_steps": scenario.duration_steps,
@@ -63,9 +65,10 @@ class ExperimentConfiguration:
         }
 
 
-_TOP_LEVEL = {"experiment", "scenario", "network", "protocol", "safety", "maneuver", "execution", "output"}
+_TOP_LEVEL = {"experiment", "benchmark", "scenario", "network", "protocol", "safety", "maneuver", "execution", "output"}
 _FIELDS = {
     "experiment": {"name", "seed", "metadata"},
+    "benchmark": {"name"},
     "scenario": {"preset", "name", "agent_count", "duration_steps", "decision_deadline_steps", "risk_reassessment_horizon_steps", "initial_states", "mission_priorities", "fuel_budgets"},
     "network": {"latency_steps", "packet_loss_rate", "bandwidth_limit_per_agent"},
     "protocol": {"name"},
@@ -175,6 +178,7 @@ def load_experiment_config(path, overrides=None):
     if unknown:
         raise ConfigurationError(f"Invalid configuration: unknown top-level section(s): {', '.join(unknown)}.")
     experiment = _table(data, "experiment")
+    benchmark_values = _table(data, "benchmark")
     scenario_values = _table(data, "scenario")
     network = _table(data, "network")
     protocol_values = _table(data, "protocol")
@@ -202,6 +206,13 @@ def load_experiment_config(path, overrides=None):
     if not isinstance(scenario.name, str) or not scenario.name.strip():
         raise ConfigurationError("Invalid scenario.name: expected a non-empty string.")
     scenario.seed = seed
+    benchmark = benchmark_values.get("name", "spacecraft-coordination-v1")
+    if benchmark != "spacecraft-coordination-v1":
+        raise ConfigurationError(
+            "Unsupported benchmark "
+            f"'{benchmark}'. This release implements spacecraft-coordination-v1; "
+            "see docs/benchmarks.md for the benchmark adapter roadmap."
+        )
 
     mapping = {
         "agent_count": (scenario_values, "agent_count"),
@@ -254,4 +265,4 @@ def load_experiment_config(path, overrides=None):
     output_directory = Path(directory).expanduser()
     if not output_directory.is_absolute():
         output_directory = (source.parent / output_directory).resolve()
-    return ExperimentConfiguration(name, seed, protocol, scenario, output_directory, metadata, source)
+    return ExperimentConfiguration(name, seed, protocol, scenario, output_directory, metadata, source, benchmark)

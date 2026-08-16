@@ -10,7 +10,7 @@ source .venv/bin/activate
 python -m pip install ".[dev]"
 ```
 
-The core closed-loop testbed has no third-party runtime dependency. Install the optional TLE propagation stack with `python -m pip install ".[dev,orbit]"` if you want to run `src.propagation` or the legacy TLE experiment. TLE access is local by default; missing or malformed input is reported by the loader.
+The core closed-loop testbed has no third-party runtime dependency. From a package index use `pip install themis-testbed`; use `pip install "themis-testbed[viewer]"` when declaring viewer use explicitly. The current viewer extra adds no dependency because its server is standard-library-only. Install the optional TLE propagation stack with `python -m pip install ".[dev,orbit]"` if you want to run `src.propagation` or the legacy TLE experiment. TLE access is local by default; a network refresh requires `--refresh-tle`, and the demo reports the exact input hash.
 
 ## Run and inspect
 
@@ -29,6 +29,8 @@ themis view results/<run-id>
 ```
 
 The [viewer guide](viewer.md) explains timeline navigation, agent-local knowledge, communication events, comparisons, and sweep exploration.
+
+For a quantitative sweep, include repeated seeds and run `themis analyze results/<name>-sweep`. Read the [researcher guide](researcher-guide.md) and [methodology](methodology.md) before interpreting intervals.
 
 ## Modify and reproduce
 

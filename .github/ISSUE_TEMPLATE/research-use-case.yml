@@ -1,0 +1,31 @@
+name: Research use case
+description: Propose a study, benchmark requirement, validation case, or collaboration.
+title: "[Research]: "
+labels: [research]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Research question
+      description: State the claim or comparison you want the experiment to support.
+    validations:
+      required: true
+  - type: textarea
+    id: model
+    attributes:
+      label: Required model and evidence
+      description: Describe entities, observations, actions, units, uncertainty, scale, reference data, and validation criteria.
+    validations:
+      required: true
+  - type: textarea
+    id: current_gap
+    attributes:
+      label: Gap in current Themis
+      description: Which documented assumption, interface, metric, or artifact prevents the study today?
+    validations:
+      required: true
+  - type: textarea
+    id: contribution
+    attributes:
+      label: Proposed contribution or collaboration
+      description: Note code, data, review, domain expertise, or study artifacts you can contribute.

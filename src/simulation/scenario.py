@@ -24,6 +24,7 @@ class ScenarioConfig:
     initial_states: list[dict] = field(default_factory=list)
     mission_priorities: dict[str, int] = field(default_factory=dict)
     fuel_budgets: dict[str, float] = field(default_factory=dict)
+    preset: str = "custom"
 
     def __post_init__(self):
         if self.maneuver_threshold_km is None:
@@ -46,6 +47,7 @@ def load_scenario(name, seed=0):
             network_latency_steps=1,
             packet_loss_rate=0.1,
             bandwidth_limit_per_agent=5,
+            preset=name,
         )
 
     if name == "closed_loop_resolved":
@@ -68,11 +70,13 @@ def load_scenario(name, seed=0):
                 {"agent_id": "SAT-B", "position_km": [30.0, 0.0, 0.0], "velocity_km_per_step": [0.0, 0.0, 0.0]},
             ],
             mission_priorities={"SAT-A": 1, "SAT-B": 5},
+            preset=name,
         )
 
     if name == "closed_loop_insufficient_fuel":
         scenario = load_scenario("closed_loop_resolved", seed=seed)
         scenario.name = name
+        scenario.preset = name
         scenario.fuel_budgets = {"SAT-A": 5.0, "SAT-B": 200.0}
         scenario.mission_priorities = {"SAT-A": 1, "SAT-B": 5}
         return scenario
@@ -80,6 +84,7 @@ def load_scenario(name, seed=0):
     if name == "closed_loop_late_response":
         scenario = load_scenario("closed_loop_resolved", seed=seed)
         scenario.name = name
+        scenario.preset = name
         scenario.network_latency_steps = 3
         scenario.decision_deadline_steps = 1
         return scenario
@@ -87,6 +92,7 @@ def load_scenario(name, seed=0):
     if name == "closed_loop_packet_loss":
         scenario = load_scenario("closed_loop_resolved", seed=seed)
         scenario.name = name
+        scenario.preset = name
         scenario.packet_loss_rate = 1.0
         return scenario
 
@@ -112,6 +118,7 @@ def load_scenario(name, seed=0):
             ],
             mission_priorities={"SAT-A": 1, "SAT-B": 5, "SAT-C": 3},
             allow_secondary_risk=True,
+            preset=name,
         )
 
     if name == "closed_loop_protocol_difference":
@@ -135,11 +142,13 @@ def load_scenario(name, seed=0):
             ],
             mission_priorities={"SAT-A": 1, "SAT-B": 1},
             fuel_budgets={"SAT-A": 60.0, "SAT-B": 200.0},
+            preset=name,
         )
 
     if name == "closed_loop_execution_error":
         scenario = load_scenario("closed_loop_resolved", seed=seed)
         scenario.name = name
+        scenario.preset = name
         scenario.execution_magnitude_error_fraction = 0.1
         return scenario
 

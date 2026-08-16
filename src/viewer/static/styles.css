@@ -133,9 +133,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .segmented button { border: 0; background: transparent; padding: 4px 8px; color: var(--text-2); font-size: 11px; }
 .segmented button.active { background: var(--surface-3); color: var(--text); }
 
-.visual-stage { height: 387px; position: relative; background: var(--surface-1); }
+.visual-stage { height: 387px; position: relative; background: radial-gradient(circle at 50% 45%, var(--surface-2), var(--surface-1) 68%); }
 .visual-stage svg { display: block; width: 100%; height: 100%; }
-.visual-note { position: absolute; left: 14px; bottom: 10px; color: var(--text-3); font-size: 10px; letter-spacing: .02em; pointer-events: none; }
+.visual-note { position: absolute; right: 14px; top: 45px; color: var(--text-3); font-family: var(--mono); font-size: 9px; letter-spacing: .02em; pointer-events: none; background: color-mix(in srgb, var(--surface-1) 92%, transparent); padding: 3px 6px; border: 1px solid var(--border); border-radius: 3px; }
 .agent-bar { min-height: 58px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 7px; padding: 9px 13px; overflow-x: auto; }
 .agent-bar-label { color: var(--text-3); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; margin-right: 4px; }
 .chip { padding: 5px 8px; font-family: var(--mono); font-size: 11px; color: var(--text-2); white-space: nowrap; }
@@ -204,6 +204,7 @@ pre { font-family: var(--mono); font-size: 10px; line-height: 1.55; white-space:
 .status-dot.delivered { background: var(--success); }
 .status-dot.dropped { background: var(--danger); border-radius: 0; transform: rotate(45deg); }
 .status-dot.late { background: var(--warning); }
+.status-dot.in_flight { background: var(--cyan); box-shadow: 0 0 0 2px color-mix(in srgb, var(--cyan) 18%, transparent); }
 .mono { font-family: var(--mono); }
 .copy-row { display: flex; gap: 7px; }
 .copy-row code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 7px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 4px; font-family: var(--mono); font-size: 9px; }
@@ -215,6 +216,11 @@ pre { font-family: var(--mono); font-size: 10px; line-height: 1.55; white-space:
 .compare-run { border: 1px solid var(--border); background: var(--surface-1); border-radius: 5px; padding: 12px; }
 .compare-run h3 { margin: 0 0 8px; font-size: 12px; }
 .compare-run .outcome { font-family: var(--mono); font-size: 20px; }
+.compare-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.compare-card-head h3 { margin: 0; }
+.compare-card-head .outcome { font-size: 12px; font-weight: 650; }
+.compare-run p { margin: 7px 0 0; color: var(--text-2); font-size: 11px; }
+.snapshot-label { margin-top: 13px; color: var(--text-3); font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
 .difference-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 14px 14px; }
 
 .sweep-shell { max-width: 1480px; margin: 0 auto; padding: 18px; display: grid; gap: 12px; }
@@ -226,8 +232,11 @@ pre { font-family: var(--mono); font-size: 10px; line-height: 1.55; white-space:
 .field label { color: var(--text-3); font-size: 9px; text-transform: uppercase; letter-spacing: .07em; }
 .field select { min-width: 180px; background: var(--surface-1); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 7px; }
 .sweep-grid { display: grid; grid-template-columns: minmax(550px, 1.5fr) minmax(280px, .6fr); gap: 12px; }
-.chart-area { height: 430px; padding: 12px; }
-#sweep-canvas { width: 100%; height: 100%; display: block; }
+.chart-area { height: 430px; padding: 12px; display: flex; flex-direction: column; }
+#sweep-canvas { width: 100%; min-height: 0; flex: 1; display: block; }
+.heat-legend { min-height: 28px; padding: 4px 14px 0 62px; display: flex; align-items: center; gap: 8px; color: var(--text-2); font-family: var(--mono); font-size: 9px; }
+.heat-ramp { width: 120px; height: 7px; border: 1px solid var(--border); background: linear-gradient(90deg, rgba(115,167,255,.18), rgba(115,167,255,.9)); }
+.legend-note { margin-left: auto; color: var(--text-3); }
 .outcome-bars { padding: 14px; }
 .bar-row { margin-bottom: 15px; }
 .bar-head { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 11px; }

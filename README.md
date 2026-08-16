@@ -1,6 +1,6 @@
 # Themis
 
-Themis is a deterministic experimentation framework for studying coordination in networked autonomous systems under communication, execution, resource, and safety constraints. Its first implemented benchmark domain is simplified space-traffic coordination.
+Themis is an inspectable experimentation framework for studying coordination in networked autonomous systems under communication, execution, resource, and safety constraints. Its first implemented, versioned benchmark is simplified space-traffic coordination.
 
 It helps researchers ask questions such as: how does a local protocol behave when risk alerts are late or lost, how does it compare with a centralized policy on the same initial state, and which proposed actions an independent safety layer rejects?
 
@@ -17,10 +17,13 @@ python -m pip install ".[dev]"
 themis run examples/basic.toml
 ```
 
+For a published package install, use `pip install themis-testbed`. Core CLI, artifact, analysis, and research workflows have no viewer dependency; `pip install "themis-testbed[viewer]"` is the explicit viewer installation target and is currently dependency-free because the viewer uses the Python standard library and packaged browser assets. Orbit/TLE demonstrations are separate under the `orbit` extra.
+
 A successful run prints a concise safety, communication, and maneuver summary:
 
 ```text
-Run: basic-conjunction-centralized-s42-9cd2d4016a
+Run: basic-conjunction-centralized-s42-<configuration-hash>
+Benchmark: spacecraft-coordination-v1
 Scenario / protocol / seed: basic-conjunction / centralized / 42
 Outcome: resolved
 Safety: 1 initial, 1 resolved, 0 unresolved, 0 validator rejection(s)
@@ -40,7 +43,7 @@ themis run examples/viewer-demo.toml
 themis view results/<printed-run-id>
 ```
 
-Use the synchronized timeline to inspect global benchmark truth, agent-local knowledge, observed message delivery and loss, protocol inputs, action proposals, independent validation, execution, resource changes, and risk reassessment.
+Use the synchronized timeline to inspect global benchmark truth, agent-local knowledge, message state as of the exact selected event, protocol inputs, action proposals, independent validation, execution, resource changes, and risk reassessment. The physical view separates recorded history from explicitly dashed current-model projections; it never draws a later maneuver early.
 
 ![Themis single-run viewer showing a dropped risk alert and synchronized causal trace](docs/images/viewer-run.png)
 
@@ -71,6 +74,7 @@ themis compare examples/protocol-comparison.toml \
 
 # Run a protocol × loss × latency × seed grid
 themis sweep examples/network-sweep.toml
+themis analyze results/network-sweep-sweep
 
 # Validate without running, or inspect an event stream
 themis validate examples/basic.toml
@@ -115,13 +119,23 @@ The complete schema is in [configuration.md](docs/configuration.md), metric defi
 
 ## Add a protocol
 
-Implement the narrow `CoordinationProtocol` contract, operate only on `ProtocolContext`, and register the class explicitly in `src/protocols/registry.py`. A minimal implementation lives in `src/protocols/example.py`; the lifecycle, determinism rules, and test pattern are documented in [protocols.md](docs/protocols.md).
+Implement the narrow public `themis.protocols.CoordinationProtocol` contract and operate only on `ProtocolContext`. A separately installed package can register a `themis.protocols` entry point and immediately participate in configs, comparisons, sweeps, artifacts, and the generic viewer—no Themis or frontend source edit required. A minimal implementation lives in `src/protocols/example.py`; packaging, lifecycle, determinism rules, and test patterns are documented in [protocols.md](docs/protocols.md).
+
+## Research readiness
+
+Themis provides deterministic seeded runs, strict resolved configuration, immutable completed-run inspection, machine-readable provenance and JSON Schemas, protocol comparison, resumable parameter sweeps, replicate-aware descriptive statistics, CI across Python 3.11/3.12, and explicit model limitations. These are foundations for controlled computational experiments, not a claim that the current linear benchmark is validated for operational spaceflight.
+
+Start with the [researcher guide](docs/researcher-guide.md), read the [methodology and reporting checklist](docs/methodology.md), and inspect the [ecosystem comparison](docs/ecosystem-comparison.md) to decide whether the present abstraction fits your question. The public artifact loader is `themis.artifacts.load_run`; schemas ship with the package.
 
 ## Development and deeper documentation
 
 - [Getting started](docs/getting-started.md)
 - [Configuration reference](docs/configuration.md)
 - [Experiment and sweep guide](docs/experiments.md)
+- [Researcher guide](docs/researcher-guide.md)
+- [Methodology and reporting checklist](docs/methodology.md)
+- [Artifact contract](docs/artifact-contract.md)
+- [Ecosystem comparison](docs/ecosystem-comparison.md)
 - [Artifact viewer guide](docs/viewer.md)
 - [Protocol authoring](docs/protocols.md)
 - [Metrics reference](docs/metrics.md)
@@ -134,3 +148,7 @@ Run `themis --help`, `themis run --help`, or the full test suite with `python -m
 ## License
 
 Themis is available under the [Apache License 2.0](LICENSE).
+
+## Citation
+
+Use the repository's [citation metadata](CITATION.cff). A version DOI is not yet active; the release/archival process is documented in [release checklist](docs/releasing.md), and DOI fields must not be claimed until an archive deposit exists.
