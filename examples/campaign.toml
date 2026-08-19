@@ -1,0 +1,29 @@
+[experiment]
+name = "campaign-reference"
+seed = 42
+
+[benchmark]
+name = "spacecraft-campaign-v1"
+
+[scenario]
+preset = "campaign_reference"
+duration_steps = 16
+decision_deadline_steps = 4
+
+[network]
+latency_steps = 0
+packet_loss_rate = 0.0
+bandwidth_limit_per_agent = 8
+
+[protocol]
+name = "auction"
+
+[auction]
+maneuver_cost_weight = 1.0
+mission_priority_weight = 5.0
+fuel_scarcity_weight = 20.0
+risk_reduction_weight = 0.1
+deadline_slack_weight = 0.0
+
+[output]
+directory = "../results"

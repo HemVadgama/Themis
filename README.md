@@ -2,9 +2,11 @@
 
 Themis is an inspectable experimentation framework for studying coordination in networked autonomous systems under communication, execution, resource, and safety constraints. Its first implemented, versioned benchmark is simplified space-traffic coordination.
 
-It helps researchers ask questions such as: how does a local protocol behave when risk alerts are late or lost, how does it compare with a centralized policy on the same initial state, and which proposed actions an independent safety layer rejects?
+It helps researchers ask: how do latency, packet loss, message-count bandwidth, deadlines, and scale change centralized, greedy, and auction coordination—and how do earlier actions, resource use, and communication failures change later decisions?
 
 The first benchmark uses linear local-frame trajectories and threshold-based risk; its documented scope is in [assumptions and limitations](docs/assumptions-and-limitations.md).
+
+`spacecraft-coordination-v1` remains the backward-compatible one-decision benchmark. `spacecraft-campaign-v1` is its explicit multi-cycle successor with persistent truth, beliefs, resources, risks, protocol state, and fault-aware auction rounds. Neither is an operational spacecraft-safety, collision-probability, maneuver-design, or network simulator.
 
 ## Five-minute quick start
 
@@ -15,6 +17,7 @@ python3.11 -m venv .venv
 source .venv/bin/activate
 python -m pip install ".[dev]"
 themis run examples/basic.toml
+themis run examples/campaign.toml
 ```
 
 For a published package install, use `pip install themis-testbed`. Core CLI, artifact, analysis, and research workflows have no viewer dependency; `pip install "themis-testbed[viewer]"` is the explicit viewer installation target and is currently dependency-free because the viewer uses the Python standard library and packaged browser assets. Orbit/TLE demonstrations are separate under the `orbit` extra.
@@ -72,6 +75,11 @@ Edit a TOML file to change the seed, protocol, latency, packet loss, maneuver bo
 themis compare examples/protocol-comparison.toml \
   --protocol centralized --protocol greedy
 
+# Compare all campaign protocols and reproduce the executed smoke study
+themis compare examples/campaign.toml \
+  --protocol centralized --protocol greedy --protocol auction
+python studies/auction-network-faults/study.py all --profile smoke
+
 # Run a protocol × loss × latency × seed grid
 themis sweep examples/network-sweep.toml
 themis analyze results/network-sweep-sweep
@@ -109,6 +117,8 @@ Scenario / linear initial truth
 
 Physical truth, agent-local beliefs, protocol decisions, safety validation, and execution have separate owners. Protocols receive copied trajectories and frozen agent views; they propose actions but cannot execute them. The detailed rationale and state ownership are in [architecture.md](docs/architecture.md).
 
+Campaign auction traces link risk, announcement, bid, award, proposal, validation, execution, and reassessment IDs. The viewer supports artifact v3 and exposes cycle snapshots, actor knowledge, bids received, deterministic winner evidence, timeout causes, resource changes, and later risks without redesigning the generic event debugger.
+
 ## Create and reproduce an experiment
 
 Copy [examples/basic.toml](examples/basic.toml), give the experiment a name, and change its tables. The configuration is strictly validated before the simulation starts. Relative output paths are resolved relative to the configuration file. The saved resolved config can itself be passed back to `themis run`.
@@ -126,6 +136,8 @@ Implement the narrow public `themis.protocols.CoordinationProtocol` contract and
 Themis provides deterministic seeded runs, strict resolved configuration, immutable completed-run inspection, machine-readable provenance and JSON Schemas, protocol comparison, resumable parameter sweeps, replicate-aware descriptive statistics, and CI across Python 3.11/3.12.
 
 Start with the [researcher guide](docs/researcher-guide.md), read the [methodology and reporting checklist](docs/methodology.md), and inspect the [ecosystem comparison](docs/ecosystem-comparison.md) to decide whether the present abstraction fits your question. The public artifact loader is `themis.artifacts.load_run`; schemas ship with the package.
+
+The checked-in [auction/network-fault study](studies/auction-network-faults/README.md) contains preregistered hypotheses, smoke/publication profiles, raw smoke rows, uncertainty intervals, an SVG, sampled failure-boundary analysis, exact commands, and threats to validity. The 36-run smoke profile was executed and its aggregates are tracked; reproducible per-run traces are ignored to keep the source checkout compact. The larger 720-run profile is intentionally not presented as executed.
 
 ## Development and deeper documentation
 

@@ -1,0 +1,11 @@
+[sweep]
+base_config = "publication-base.toml"
+
+[sweep.grid]
+"protocol.name" = ["centralized", "greedy", "auction"]
+"network.packet_loss_rate" = [0.0, 0.2, 0.4]
+"network.latency_steps" = [0, 1]
+"network.bandwidth_limit_per_agent" = [2, 8]
+"scenario.decision_deadline_steps" = [4, 7]
+"scenario.agent_count" = [2, 8]
+"experiment.seed" = [0, 1, 2, 3, 4]

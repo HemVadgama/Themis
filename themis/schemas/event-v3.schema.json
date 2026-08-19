@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/HemVadgama/Themis/raw/main/themis/schemas/event-v3.schema.json",
+  "title": "Themis campaign trace event v3",
+  "type": "object",
+  "required": ["time", "sequence", "event_type", "category", "payload", "entity_ids", "references"],
+  "properties": {
+    "time": {"type": "integer", "minimum": 0},
+    "sequence": {"type": "integer", "minimum": 0},
+    "event_type": {"type": "string", "minLength": 1},
+    "category": {"type": "string", "minLength": 1},
+    "actor": {"type": ["string", "null"]},
+    "payload": {"type": "object"},
+    "entity_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "references": {"type": "object", "additionalProperties": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

@@ -30,3 +30,7 @@ The implementation uses published 95% t critical values through 30 degrees of fr
 - archive DOI or permanent artifact location, once available
 
 Report results in terms of the measured benchmark quantities—for example, “reduced unresolved threshold events in this configuration grid”—and state any broader inference separately.
+
+Campaign comparisons pair protocols on the same resolved condition and seed. Scenario, network, and execution streams derive independently from that seed. Risk generations, auctions, bids, awards, and actions have stable IDs. A sampled failure boundary must report its grid and criterion, not an interpolated universal threshold.
+
+The executable `studies/auction-network-faults/` study preregisters hypotheses, retains run-level rows, reports sample counts and Student-t intervals, separates runtime, and uses a deterministic sampled-boundary scan. Its executed three-seed smoke profile is workflow evidence, not a powered conclusion; the five-seed publication profile is a convenience-bounded pilot and remains unexecuted until deliberately run.

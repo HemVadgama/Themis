@@ -2,6 +2,16 @@
 
 This project follows semantic versioning for its documented public contracts. During 0.x, breaking changes increment the minor version.
 
+## 0.4.0 — 2026-08-18
+
+- Add explicit `spacecraft-campaign-v1` without changing v1 configuration, lifecycle, run IDs, metrics, or artifact generation.
+- Add multi-cycle propagation, persistent risk lifecycles and beliefs, independent random streams, persistent resources, deadlines, execution effects, secondary risks, and snapshots.
+- Add a communication-dependent auction with announcements, bids, deterministic score/tie-break, awards, acknowledgement, reservations, timeout, and fault traces.
+- Add campaign protocol hooks, a one-shot adapter, conformance checks, metrics, artifact schema v3, viewer support, and emission validation.
+- Add and execute the 36-run network-fault smoke study; add an unexecuted 720-run publication profile.
+
+Compatibility note: v1 still emits artifact schema v2 and retains its scientific identity. Auction requires the explicit campaign benchmark. Loaders now accept v3 as well as older generations.
+
 ## 0.3.0 — 2026-08-15
 
 - Add stable `themis.protocols`, `themis.artifacts`, and `themis.analysis` Python APIs.

@@ -1,4 +1,4 @@
-# Protocol Arena
+# Protocol arena
 
 Themis is an experimental research and benchmarking platform for distributed autonomous coordination.
 
@@ -22,7 +22,7 @@ flowchart TD
     H --> L
 ```
 
-The closed loop is:
+The original `spacecraft-coordination-v1` closed loop is:
 
 1. Build deterministic scenario trajectories.
 2. Detect initial conjunction risk.
@@ -47,6 +47,8 @@ The closed loop is:
 - Run history lives in `SimulationTrace`.
 
 This separation prevents protocols from silently mutating trajectories and keeps original trajectory data intact.
+
+`spacecraft-campaign-v1` retains those ownership boundaries across repeated cycles. Truth, resources, open risks, actor beliefs, in-flight messages, and protocol state persist. Each actor receives an immutable `CampaignProtocolContext`; messages return to the constrained network, proposals return to the validator, and only successful execution mutates truth or consumes resource. The exact equal-time order and risk-state meanings are part of the [benchmark contract](benchmarks.md).
 
 ## Maneuver Model
 
@@ -90,8 +92,15 @@ Protocols propose actions. They do not execute maneuvers or mutate trajectories.
 
 - `centralized` has global risk visibility and selects one satellite in each risky pair, preferring lower mission priority and then higher available fuel.
 - `greedy` uses local risk alerts delivered through the network and proposes based on each agent's known risks.
+- `auction` is campaign-only. Participants exchange announcement, bid, award, and acknowledgement messages; bid candidates reserve modeled resource until award, conflict, or timeout. Winner order is deterministic and every stage remains exposed to configured network faults.
 
-Future protocols can integrate by implementing the proposal interface and accepting a restricted protocol context.
+External one-decision protocols integrate through `themis.protocols.CoordinationProtocol`. Campaign-native implementations add `actors`, `on_message`, and `on_tick`; the [protocol authoring guide](protocols.md) documents the adapter boundary and conformance checks.
+
+## Campaign cycle
+
+At every integer cycle the runner propagates truth, updates risk generations, delivers due messages into actor beliefs, invokes protocol message/timer hooks, validates returned proposals, executes due accepted actions, reassesses causal effects, expires deadlines, and records a state snapshot. Zero-latency messages drain deterministically. Late messages remain visible and update present belief, but cannot retroactively trigger an expired decision.
+
+Auction bids minimize the documented configurable score across maneuver cost, mission priority, fuel scarcity, expected risk reduction, and deadline slack. The score is a benchmark heuristic rather than an operational utility or incentive-compatible market.
 
 ## Trace And Replay
 
@@ -112,13 +121,14 @@ Run output includes:
 Run a closed-loop scenario:
 
 ```bash
-python -m src.simulation.runner run --scenario closed_loop_resolved --protocol centralized --seed 42 --output results/closed_loop_run.json
+themis run examples/basic.toml
+themis run examples/campaign.toml
 ```
 
 Inspect a saved trace:
 
 ```bash
-python -m src.simulation.runner replay results/closed_loop_run.json
+themis replay results/<run-id>
 ```
 
 `replay` remains textual trace inspection rather than state reconstruction. Use `themis view <run-directory>` for the separate artifact-driven visual debugger.
@@ -150,6 +160,8 @@ Closed-loop runs report safety, coordination, resource, communication, and timin
 - detection-to-decision and decision-to-execution timing
 - wall-clock runtime
 
+Campaign v1 additionally reports risk lifecycle counts and times, peak open risk, deadline success/miss counts, auction completion and failure modes, received/expected bids, modeled resource consumption and exhaustion, burden Gini, and completed cycles. The [metrics reference](metrics.md) defines denominators and proxy semantics.
+
 ## Known Limitations
 
 - The closed-loop propagator is linear and synthetic.
@@ -157,4 +169,6 @@ Closed-loop runs report safety, coordination, resource, communication, and timin
 - Risk is distance-threshold based, not probabilistic collision assessment.
 - Maneuver validation uses short-horizon separation checks.
 - Replay is trace inspection, not deterministic state rehydration.
-- There is no dashboard, reinforcement learning, LLM-agent behavior, auction protocol, gossip protocol, or high-fidelity perturbation model yet.
+- The viewer is a completed-artifact debugger, not a live dashboard or restart engine.
+- There is no reinforcement learning, LLM-agent behavior, gossip protocol, strategic/combinatorial auction, or high-fidelity perturbation model.
+- Network latency is fixed, packet loss is independent Bernoulli loss, and bandwidth is a per-sender message count rather than a byte- or topology-level model.

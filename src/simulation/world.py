@@ -13,6 +13,7 @@ class WorldState:
     trace: object | None = None
     conjunctions: list[dict] = field(default_factory=list)
     delivered_messages: list = field(default_factory=list)
+    risk_commitments: dict = field(default_factory=dict)
 
     def reset_agent_plans(self):
         for agent in self.agents.values():

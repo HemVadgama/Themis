@@ -44,7 +44,9 @@ class NetworkSimulator:
 
         message.deliver_at = current_time + self.config.latency_steps
         self.queued_messages.append(message)
-        self.queued_messages.sort(key=lambda queued: (queued.deliver_at, queued.sender_id, queued.recipient_id))
+        self.queued_messages.sort(
+            key=lambda queued: (queued.deliver_at, queued.sender_id, queued.recipient_id, queued.message_id)
+        )
         return True
 
     def deliver_due(self, current_time):

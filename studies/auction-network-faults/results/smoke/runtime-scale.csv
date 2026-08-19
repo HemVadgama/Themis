@@ -1,0 +1,4 @@
+protocol,agent_count,n,mean_runtime_seconds,min_runtime_seconds,max_runtime_seconds,classification
+auction,4,12,0.00606878815839688,0.0030919169075787067,0.008029625052586198,observational_host_performance
+centralized,4,12,0.0044039061370616155,0.002689959015697241,0.005517957964912057,observational_host_performance
+greedy,4,12,0.005583739761884014,0.00438766716979444,0.006713167065754533,observational_host_performance

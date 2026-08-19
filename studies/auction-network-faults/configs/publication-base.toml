@@ -1,0 +1,23 @@
+[experiment]
+name = "auction-network-faults-publication"
+seed = 0
+
+[benchmark]
+name = "spacecraft-campaign-v1"
+
+[scenario]
+preset = "campaign_reference"
+duration_steps = 12
+decision_deadline_steps = 4
+agent_count = 2
+
+[network]
+latency_steps = 0
+packet_loss_rate = 0.0
+bandwidth_limit_per_agent = 8
+
+[protocol]
+name = "centralized"
+
+[output]
+directory = "../results/runs"

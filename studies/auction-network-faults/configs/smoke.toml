@@ -1,0 +1,8 @@
+[sweep]
+base_config = "smoke-base.toml"
+
+[sweep.grid]
+"protocol.name" = ["centralized", "greedy", "auction"]
+"network.packet_loss_rate" = [0.0, 0.3]
+"network.latency_steps" = [0, 1]
+"experiment.seed" = [0, 1, 2]

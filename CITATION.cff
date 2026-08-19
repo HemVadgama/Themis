@@ -5,8 +5,8 @@ type: software
 authors:
   - family-names: "Vadgama"
     given-names: "Hem"
-version: 0.3.0
-date-released: 2026-08-15
+version: 0.4.0
+date-released: 2026-08-18
 license: Apache-2.0
 repository-code: "https://github.com/HemVadgama/Themis"
 url: "https://github.com/HemVadgama/Themis"

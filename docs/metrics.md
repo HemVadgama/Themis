@@ -22,3 +22,12 @@ Metrics report quantities defined by the `spacecraft-coordination-v1` simulation
 `total_delta_v_used_km_per_step` uses velocity change per simulation step, not physical km/s. `estimated_fuel_used` currently equals proposal delta-v magnitude, and `mission_disruption_cost` is `0.1 × magnitude`. These are comparison proxies, not propellant mass, mission cost, or flight-qualified performance.
 
 `runtime_seconds` is wall-clock performance and nondeterministic. All other metrics are intended to be deterministic for a fixed resolved config, seed, and version.
+
+## Campaign v1 additions
+
+- Risk lifecycle: `risks_created`, `risks_resolved`, `risks_closed`, `risks_expired`, `risks_unresolved`, primary/secondary counts, resolution times, and peak concurrent open risks. `resolution_probability` is resolved divided by created; unattributed closure is not a protocol resolution.
+- Deadline/action: decisions before deadline, misses, accepted/rejected proposals, execution failures, and completed cycles.
+- Cost/resource: maneuver count, `modeled_maneuver_cost`, per-agent resource consumption, exhaustion events, and burden Gini. Gini describes concentration of modeled maneuver counts, not ethical fairness.
+- Auction: success (auction proposal accepted), timeout, no-valid-bid, expected bids, and received bids.
+
+Messages remain counts because there is no defended byte-size model. `messages_sent` preserves v1 network semantics: bandwidth-rejected attempts are dropped before being accepted as sent; packet-loss attempts are sent and dropped. Trace events expose every attempt. Maneuver/resource names retain `modeled` or `proxy`; they do not imply physical propellant or operational safety.

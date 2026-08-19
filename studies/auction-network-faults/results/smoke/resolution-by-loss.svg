@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="440" viewBox="0 0 760 440">
+<rect width="100%" height="100%" fill="white"/>
+<line x1="55" y1="385" x2="705" y2="385" stroke="#333"/>
+<line x1="55" y1="55" x2="55" y2="385" stroke="#333"/>
+<line x1="55" y1="385.0" x2="705" y2="385.0" stroke="#ddd"/>
+<text x="8" y="389.0" font-size="12">0.00</text>
+<line x1="55" y1="302.5" x2="705" y2="302.5" stroke="#ddd"/>
+<text x="8" y="306.5" font-size="12">0.25</text>
+<line x1="55" y1="220.0" x2="705" y2="220.0" stroke="#ddd"/>
+<text x="8" y="224.0" font-size="12">0.50</text>
+<line x1="55" y1="137.5" x2="705" y2="137.5" stroke="#ddd"/>
+<text x="8" y="141.5" font-size="12">0.75</text>
+<line x1="55" y1="55.0" x2="705" y2="55.0" stroke="#ddd"/>
+<text x="8" y="59.0" font-size="12">1.00</text>
+<text x="43.0" y="415" font-size="12">0</text>
+<text x="693.0" y="415" font-size="12">0.3</text>
+<polyline points="55.0,55.0 705.0,240.2" fill="none" stroke="#2c7fb8" stroke-width="2.5" stroke-dasharray=""/>
+<polyline points="55.0,187.0 705.0,319.0" fill="none" stroke="#2c7fb8" stroke-width="2.5" stroke-dasharray="6,4"/>
+<polyline points="55.0,55.0 705.0,137.5" fill="none" stroke="#f28e2b" stroke-width="2.5" stroke-dasharray=""/>
+<polyline points="55.0,220.0 705.0,216.1" fill="none" stroke="#f28e2b" stroke-width="2.5" stroke-dasharray="6,4"/>
+<polyline points="55.0,319.0 705.0,363.0" fill="none" stroke="#4daf4a" stroke-width="2.5" stroke-dasharray=""/>
+<polyline points="55.0,319.0 705.0,363.0" fill="none" stroke="#4daf4a" stroke-width="2.5" stroke-dasharray="6,4"/>
+<text x="305.0" y="435" font-size="14">packet loss probability</text>
+<text x="15" y="25" font-size="14">mean modeled resolution fraction</text>
+<text x="500" y="25" font-size="12">solid: latency 0; dashed: latency 1</text>
+</svg>

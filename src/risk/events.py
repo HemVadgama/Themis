@@ -23,9 +23,23 @@ class RiskEvent:
     decision_deadline: int
     status: str = "OPEN"
     metadata: dict = field(default_factory=dict)
+    classification: str = "PRIMARY"
+    updated_time: int | None = None
+    closed_time: int | None = None
+    resolution_time: int | None = None
+    causal_maneuver_id: str | None = None
+    predecessor_risk_event_id: str | None = None
 
     def participants(self) -> set[str]:
         return {self.satellite_a, self.satellite_b}
 
-    def to_dict(self) -> dict:
-        return asdict(self)
+    def to_dict(self, include_campaign=False) -> dict:
+        data = asdict(self)
+        if include_campaign:
+            return data
+        for key in (
+            "classification", "updated_time", "closed_time", "resolution_time",
+            "causal_maneuver_id", "predecessor_risk_event_id",
+        ):
+            data.pop(key, None)
+        return data

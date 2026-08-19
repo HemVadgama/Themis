@@ -39,6 +39,32 @@ class MetricsSummary:
     decision_to_execution_time_steps: list = None
     total_simulated_resolution_time_steps: int | None = None
     runtime_seconds: float = 0.0
+    cycles_completed: int = 0
+    risks_created: int = 0
+    risks_resolved: int = 0
+    risks_closed: int = 0
+    risks_expired: int = 0
+    risks_unresolved: int = 0
+    primary_risks_created: int = 0
+    secondary_risks_created: int = 0
+    resolution_probability: float | None = None
+    risk_resolution_time_steps: list = None
+    decisions_completed_before_deadline: int = 0
+    decision_deadline_misses: int = 0
+    proposals_accepted: int = 0
+    proposals_rejected: int = 0
+    execution_failures: int = 0
+    maneuver_count: int = 0
+    modeled_maneuver_cost: float = 0.0
+    auction_successes: int = 0
+    auction_timeouts: int = 0
+    auction_no_valid_bids: int = 0
+    bids_expected: int = 0
+    bids_received: int = 0
+    resource_exhaustion_events: int = 0
+    per_agent_resource_consumption: dict = None
+    maneuver_burden_gini: float | None = None
+    peak_concurrent_open_risks: int = 0
 
     def __post_init__(self):
         if self.per_agent_maneuver_burden is None:
@@ -49,11 +75,28 @@ class MetricsSummary:
             self.detection_to_decision_time_steps = []
         if self.decision_to_execution_time_steps is None:
             self.decision_to_execution_time_steps = []
+        if self.risk_resolution_time_steps is None:
+            self.risk_resolution_time_steps = []
+        if self.per_agent_resource_consumption is None:
+            self.per_agent_resource_consumption = {}
 
-    def to_dict(self, include_extended=False):
+    def to_dict(self, include_extended=False, include_campaign=False):
         data = asdict(self)
         if include_extended:
-            return data
+            if include_campaign:
+                return data
+            campaign_fields = {
+                "cycles_completed", "risks_created", "risks_resolved", "risks_closed",
+                "risks_expired", "risks_unresolved", "primary_risks_created",
+                "secondary_risks_created", "resolution_probability", "risk_resolution_time_steps",
+                "decisions_completed_before_deadline", "decision_deadline_misses",
+                "proposals_accepted", "proposals_rejected", "execution_failures",
+                "maneuver_count", "modeled_maneuver_cost", "auction_successes",
+                "auction_timeouts", "auction_no_valid_bids", "bids_expected", "bids_received",
+                "resource_exhaustion_events", "per_agent_resource_consumption",
+                "maneuver_burden_gini", "peak_concurrent_open_risks",
+            }
+            return {key: value for key, value in data.items() if key not in campaign_fields}
 
         legacy_fields = (
             "conjunctions_detected",

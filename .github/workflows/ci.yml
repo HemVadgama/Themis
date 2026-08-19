@@ -22,5 +22,8 @@ jobs:
       - run: node tests/viewer_temporal.test.js
       - run: themis validate examples/basic.toml
       - run: themis run examples/basic.toml --output-dir "${{ runner.temp }}/themis-results"
+      - run: themis validate examples/campaign.toml
+      - run: themis run examples/campaign.toml --output-dir "${{ runner.temp }}/themis-campaign-results"
+      - run: python studies/auction-network-faults/study.py verify --profile smoke
       - run: themis view --help
       - run: python -m build

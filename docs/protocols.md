@@ -26,4 +26,33 @@ Protocol code must:
 
 Tests should construct a small context, assert proposal choice and unresolved behavior, run the same seed twice, and include an integration run through safety validation. `tests/test_protocols.py`, `tests/test_productization.py`, and `tests/test_research_api.py` show these levels. Run `themis run CONFIG --protocol your-installed-name` after installation.
 
+## Campaign lifecycle
+
+Campaign-capable protocols additionally implement `actors(agent_ids)`, `on_message(message, context)`, and `on_tick(context)`, returning `CampaignProtocolStep`. Context contains one actor's immutable view, delivered risks and trajectory snapshots, latency, auction weights, and generator. Only the central actor receives `global_access=True`. Steps may return outbound messages, own-agent proposals, and audit transitions; malformed types and sender/agent impersonation are rejected.
+
+Installed entry points retain `decide` and `propose_maneuvers` for registry compatibility. Without campaign hooks, campaign v1 uses a tested one-shot adapter once per delivered local risk. This is the implemented boundary, not broad multi-round interoperability.
+
+```python
+from themis.protocols import CampaignProtocolStep, ProtocolDecision
+
+class LocalProtocol:
+    name = "local-example"
+    def decide(self, world, conjunctions):
+        return ProtocolDecision(unresolved_conjunctions=len(conjunctions))
+    def propose_maneuvers(self, context):
+        return ProtocolDecision(unresolved_conjunctions=len(context.risk_events))
+    def actors(self, agent_ids):
+        return agent_ids
+    def on_message(self, message, context):
+        return CampaignProtocolStep()
+    def on_tick(self, context):
+        return CampaignProtocolStep()
+```
+
+Use `check_protocol`, `check_campaign_protocol`, and `check_campaign_step` in package tests. Construct a fresh protocol per run; module globals violate state isolation.
+
+## Built-in auction
+
+The lexicographically first risk participant is auctioneer. Its delivered alert creates `auction:<risk-id>`, names both participants eligible, and sends announcements through the network. A participant with a feasible improving candidate and sufficient unreserved resource creates one bid containing stable IDs, score, factors, and candidate evidence; this reserves it against simultaneous auctions. Collection ends at `decision_deadline − configured_latency − 1`. Valid bids order by `(score, bidder_id, bid_id)`; the winner must receive its award early enough to propose execution by the risk deadline and sends an acknowledgement. Missing announcements, bids, awards, conflicts, no candidate, timeout, and releases are traced. Actual fuel is reserved only after independent validation and consumed only by execution.
+
 Entry-point discovery follows the [PyPA entry-points specification](https://packaging.python.org/en/latest/specifications/entry-points/). Installing an external distribution allows its selected entry point to execute in the current Python process; review and isolate third-party code as you would any research dependency.

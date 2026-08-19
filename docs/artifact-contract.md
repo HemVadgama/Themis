@@ -32,3 +32,7 @@ for event in run.events():
 ```
 
 The loader validates core presence and version compatibility and streams JSONL. It never invokes simulation or viewer code and never writes to the run directory.
+
+Artifact v3 is emitted only by `spacecraft-campaign-v1`; v1 continues to emit v2. Existing v1/v2 artifacts remain readable and the maximum supported generation is three. Packaged `metadata-v3`, `summary-v3`, and `event-v3` schemas add campaign identity while retaining extensible payloads and metrics. Emission validates required fields, versions, deterministic event identity, unique entity IDs, and string causal references before completion.
+
+Campaign events link risk, message, auction, bid, award, and maneuver IDs. `STATE_SNAPSHOT` records trajectories, risk objects/statuses, remaining/reserved resources, and each actor's known risk/trajectory IDs. Auction score evidence and message transitions explain winner, timeout, and delivery failures. Late messages remain visible and never enter an earlier snapshot.

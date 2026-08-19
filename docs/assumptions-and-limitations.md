@@ -18,7 +18,7 @@ Themis is research software for controlled coordination experiments. It is not s
 
 ## Time, execution, and safety
 
-- The current lifecycle detects initial risk at step zero and performs one proposal and reassessment pass. `duration_steps` is not a continuous operations campaign.
+- `spacecraft-coordination-v1` still detects initial risk at step zero and performs one proposal/reassessment pass. Campaign v1 repeats discrete integer cycles; neither is continuous or real-time operations.
 - Execution failure is seeded Bernoulli failure. Magnitude error is a deterministic positive scaling applied equally to vector components; direction and timing error are omitted.
 - The validator checks modeled constraints only. Acceptance is not evidence of real-world safety. Secondary-risk scanning is limited to configured objects, threshold, and short discrete horizon.
 
@@ -26,10 +26,14 @@ Themis is research software for controlled coordination experiments. It is not s
 
 The network and executor use controlled `random.Random` instances seeded from the experiment. Candidate ordering, protocol registration, event sequencing, and run IDs are deterministic. Model-derived decisions, events, and metrics should repeat for identical resolved config, seed, and software version on supported Python versions. Wall-clock runtime, artifact timestamp, filesystem path, and git metadata are observational exceptions. Floating-point behavior may differ across future Python/platform implementations.
 
+Campaign v1 strengthens this with separately derived scenario, network, and execution streams. An added draw in one source does not shift another source's sequence.
+
 ## Input and product limits
 
 - Closed-loop config supports built-in or explicit linear initial states, not an arbitrary TLE/source-data path. The optional TLE demo is separate.
 - Replay is ordered trace inspection, not state rehydration.
 - Sweeps are local and sequential. The built-in analysis provides descriptive mean/t-interval summaries only; there is no parallel scheduler, hypothesis-testing framework, power analysis, or correction for multiple comparisons.
 - The artifact-driven viewer visualizes only recorded or explicitly labeled derived facts. It does not improve physical fidelity, reconstruct omitted state, or explain causality with a learned model.
-- Version 0.3 is an alpha public interface. The project is distributed under the Apache License 2.0; API stability is still limited by its pre-1.0 status.
+- Version 0.4 is an alpha public interface. The project is distributed under the Apache License 2.0; API stability is still limited by its pre-1.0 status.
+
+Campaign auctions use exact delivered snapshots, configurable heuristic weights, one bid reservation per participant, and a fixed round schedule. They do not model strategic behavior, truthful incentives, combinatorial allocation, cryptography, settlement, or operational markets. A `SECONDARY` label is causal only inside this deterministic model; it is not a real-world causal estimate.

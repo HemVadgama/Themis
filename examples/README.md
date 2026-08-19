@@ -1,5 +1,7 @@
 # Example experiments
 
+`campaign.toml` selects `spacecraft-campaign-v1` and the communication-dependent auction. It runs 16 deterministic cycles, carries resources and beliefs forward, creates a later maneuver-caused secondary risk, and emits schema-v3 artifacts. Override with centralized, greedy, or auction to compare identical truth and seed. Older examples remain v1 and retain one-decision semantics.
+
 These examples exercise the real closed-loop pipeline using the documented benchmark units.
 
 | Example | Command | Expected qualitative result |

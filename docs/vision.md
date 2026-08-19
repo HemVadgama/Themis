@@ -2,7 +2,7 @@
 
 Themis is an inspectable experimentation framework for coordination in networked autonomous systems. It is designed around a research question, not a particular frontend: how do decision protocols behave when participants have incomplete information, communication faults, deadlines, resource constraints, independent safety checks, and imperfect execution?
 
-The first implemented benchmark, `spacecraft-coordination-v1`, uses simplified local-frame linear trajectories and threshold proximity events. Higher-fidelity physics and additional domains can enter through explicit, validated benchmark adapters while this benchmark retains a stable meaning.
+The first benchmark, `spacecraft-coordination-v1`, retains its simplified one-decision meaning. Its versioned successor, `spacecraft-campaign-v1`, repeats deterministic cycles so delivered beliefs, resources, executions, unresolved risks, and maneuver-created later risks affect later choices. Both use simplified local-frame linear trajectories and threshold proximity events.
 
 ## Design commitments
 

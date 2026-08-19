@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/HemVadgama/Themis/raw/main/themis/schemas/metadata-v3.schema.json",
+  "title": "Themis campaign run metadata v3",
+  "type": "object",
+  "required": ["artifact_schema_version", "run_id", "benchmark", "themis_version", "created_at_utc", "determinism_note", "user_metadata"],
+  "properties": {
+    "artifact_schema_version": {"const": 3},
+    "run_id": {"type": "string", "minLength": 1},
+    "benchmark": {"const": "spacecraft-campaign-v1"},
+    "themis_version": {"type": "string", "minLength": 1},
+    "git_commit": {"type": ["string", "null"]},
+    "created_at_utc": {"type": "string", "format": "date-time"},
+    "determinism_note": {"type": "string", "minLength": 1},
+    "user_metadata": {"type": "object"}
+  },
+  "additionalProperties": true
+}

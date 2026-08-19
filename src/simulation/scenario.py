@@ -25,6 +25,11 @@ class ScenarioConfig:
     mission_priorities: dict[str, int] = field(default_factory=dict)
     fuel_budgets: dict[str, float] = field(default_factory=dict)
     preset: str = "custom"
+    auction_maneuver_cost_weight: float = 1.0
+    auction_mission_priority_weight: float = 5.0
+    auction_fuel_scarcity_weight: float = 20.0
+    auction_risk_reduction_weight: float = 0.1
+    auction_deadline_slack_weight: float = 0.0
 
     def __post_init__(self):
         if self.maneuver_threshold_km is None:
@@ -152,4 +157,45 @@ def load_scenario(name, seed=0):
         scenario.execution_magnitude_error_fraction = 0.1
         return scenario
 
+    if name == "campaign_reference":
+        return ScenarioConfig(
+            name=name,
+            agent_count=4,
+            duration_steps=16,
+            conjunction_threshold_km=50.0,
+            seed=seed,
+            network_latency_steps=0,
+            packet_loss_rate=0.0,
+            bandwidth_limit_per_agent=8,
+            decision_deadline_steps=4,
+            risk_reassessment_horizon_steps=3,
+            min_delta_v_km_per_step=20.0,
+            max_delta_v_km_per_step=80.0,
+            default_fuel_budget=160.0,
+            initial_states=[
+                {"agent_id": "SAT-A", "position_km": [0.0, 0.0, 0.0], "velocity_km_per_step": [0.0, 0.0, 0.0]},
+                {"agent_id": "SAT-B", "position_km": [30.0, 0.0, 0.0], "velocity_km_per_step": [0.0, 0.0, 0.0]},
+                {"agent_id": "SAT-C", "position_km": [420.0, 0.0, 0.0], "velocity_km_per_step": [-35.0, 0.0, 0.0]},
+                {"agent_id": "SAT-D", "position_km": [-500.0, 0.0, 0.0], "velocity_km_per_step": [40.0, 0.0, 0.0]},
+            ],
+            mission_priorities={"SAT-A": 1, "SAT-B": 5, "SAT-C": 2, "SAT-D": 4},
+            allow_secondary_risk=True,
+            preset=name,
+        )
+
     raise ValueError(f"Unknown scenario '{name}'")
+
+
+def campaign_scale_states(agent_count):
+    """Deterministic paired-risk initial truth used only by campaign scale sweeps."""
+    states = []
+    for index in range(agent_count):
+        pair_index, within_pair = divmod(index, 2)
+        states.append(
+            {
+                "agent_id": f"SAT-{index + 1:03d}",
+                "position_km": [float(pair_index * 500 + within_pair * 30), 0.0, 0.0],
+                "velocity_km_per_step": [0.0, 0.0, 0.0],
+            }
+        )
+    return states

@@ -9,11 +9,13 @@ The selected entry point is loaded only when a run constructs that protocol.
 from importlib import metadata
 
 from src.protocols.centralized import CentralizedProtocol
+from src.protocols.auction import AuctionProtocol
 from src.protocols.example import ExampleLowestIdProtocol
 from src.protocols.greedy import GreedyProtocol
 
 
 PROTOCOLS = {
+    "auction": AuctionProtocol,
     "centralized": CentralizedProtocol,
     "example-lowest-id": ExampleLowestIdProtocol,
     "greedy": GreedyProtocol,

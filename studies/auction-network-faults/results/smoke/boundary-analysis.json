@@ -1,0 +1,106 @@
+{
+  "boundaries": [
+    {
+      "criterion": "first sampled loss with mean modeled resolution fraction < 0.5",
+      "latency_steps": 0,
+      "protocol": "auction",
+      "sampled_failure_boundary": 0.0,
+      "universal_boundary": false
+    },
+    {
+      "criterion": "first sampled loss with mean modeled resolution fraction < 0.5",
+      "latency_steps": 1,
+      "protocol": "auction",
+      "sampled_failure_boundary": 0.0,
+      "universal_boundary": false
+    },
+    {
+      "criterion": "first sampled loss with mean modeled resolution fraction < 0.5",
+      "latency_steps": 0,
+      "protocol": "centralized",
+      "sampled_failure_boundary": 0.3,
+      "universal_boundary": false
+    },
+    {
+      "criterion": "first sampled loss with mean modeled resolution fraction < 0.5",
+      "latency_steps": 1,
+      "protocol": "centralized",
+      "sampled_failure_boundary": 0.3,
+      "universal_boundary": false
+    },
+    {
+      "criterion": "first sampled loss with mean modeled resolution fraction < 0.5",
+      "latency_steps": 0,
+      "protocol": "greedy",
+      "sampled_failure_boundary": null,
+      "universal_boundary": false
+    },
+    {
+      "criterion": "first sampled loss with mean modeled resolution fraction < 0.5",
+      "latency_steps": 1,
+      "protocol": "greedy",
+      "sampled_failure_boundary": null,
+      "universal_boundary": false
+    }
+  ],
+  "condition_rankings": [
+    {
+      "latency_steps": 0,
+      "means": {
+        "auction": 0.2,
+        "centralized": 1.0,
+        "greedy": 1.0
+      },
+      "packet_loss_rate": 0.0,
+      "ranking": [
+        "centralized",
+        "greedy",
+        "auction"
+      ]
+    },
+    {
+      "latency_steps": 1,
+      "means": {
+        "auction": 0.2,
+        "centralized": 0.6,
+        "greedy": 0.5
+      },
+      "packet_loss_rate": 0.0,
+      "ranking": [
+        "centralized",
+        "greedy",
+        "auction"
+      ]
+    },
+    {
+      "latency_steps": 0,
+      "means": {
+        "auction": 0.06666666666666667,
+        "centralized": 0.4388888888888889,
+        "greedy": 0.75
+      },
+      "packet_loss_rate": 0.3,
+      "ranking": [
+        "greedy",
+        "centralized",
+        "auction"
+      ]
+    },
+    {
+      "latency_steps": 1,
+      "means": {
+        "auction": 0.06666666666666667,
+        "centralized": 0.2,
+        "greedy": 0.5119047619047619
+      },
+      "packet_loss_rate": 0.3,
+      "ranking": [
+        "greedy",
+        "centralized",
+        "auction"
+      ]
+    }
+  ],
+  "method": "deterministic scan of sampled smoke-study conditions",
+  "warning": "A sampled boundary or ranking is descriptive of this grid, not universal or statistically significant."
+}

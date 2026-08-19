@@ -8,7 +8,7 @@ import tomllib
 
 from src.artifacts import deterministic_run_id, write_run_artifacts
 from src.configuration import ConfigurationError, load_experiment_config
-from src.simulation.runner import run_closed_loop_scenario
+from src.simulation.dispatch import run_experiment
 
 
 def load_sweep(path):
@@ -53,7 +53,7 @@ def run_sweep(path, progress=print):
                 summary = json.loads(summary_path.read_text(encoding="utf-8"))
                 status = "resumed"
             else:
-                result = run_closed_loop_scenario(configuration.scenario, configuration.protocol)
+                result = run_experiment(configuration)
                 _, summary = write_run_artifacts(configuration, result)
                 status = "completed"
             record = {"status": status, **overrides, **summary, **summary["metrics"]}

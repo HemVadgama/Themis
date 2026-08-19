@@ -35,6 +35,11 @@ class ManeuverValidator:
         if risk_event.status != "OPEN":
             return self._invalid("STALE_RISK_EVENT", "Risk event is no longer open.", evaluated, proposal)
 
+        existing_commitment = world.risk_commitments.get(proposal.risk_event_id)
+        evaluated["risk_not_committed"] = existing_commitment in (None, proposal.maneuver_id)
+        if not evaluated["risk_not_committed"]:
+            return self._invalid("RISK_ALREADY_COMMITTED", "Risk already has an accepted maneuver.", evaluated, proposal)
+
         evaluated["before_deadline"] = proposal.proposal_time <= risk_event.decision_deadline
         if proposal.proposal_time > risk_event.decision_deadline:
             return self._invalid("MISSED_DEADLINE", "Maneuver proposal arrived after the decision deadline.", evaluated, proposal)

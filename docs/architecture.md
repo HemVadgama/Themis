@@ -58,6 +58,10 @@ The current closed-loop runner constructs initial linear trajectories, detects r
 
 The older `run_scenario` open-loop API remains for backward compatibility. The external CLI uses `run_closed_loop_scenario` and the artifact layer.
 
+The benchmark dispatcher selects `run_campaign_scenario` only for `spacecraft-campaign-v1`. A run-scoped campaign protocol is called as sorted actors with immutable `CampaignProtocolContext` values. The central controller's alert and directive traverse the network. Greedy and auction actors see only risks and trajectory snapshots delivered into their own beliefs. Returned messages re-enter `NetworkSimulator`; returned proposals go through the same validator and executor. Protocol-owned auction/reservation dictionaries are new per run and never become physical truth.
+
+Campaign randomness uses SHA-256-derived scenario, network, and execution seeds. An added execution draw therefore does not shift network-loss draws. The trace records stream labels, equal-time ordering, cycle snapshots, local known-risk/trajectory IDs, resources, and causal IDs. These snapshots support event-time inspection without treating replay as a new simulation.
+
 The viewer is downstream of standard artifacts. `src.viewer.model` validates and normalizes artifact schemas, builds event/reference indexes, and derives presentation state. `src.viewer.server` serves only those immutable data structures and packaged frontend assets over loopback HTTP. No viewer module imports or invokes simulation execution.
 
 ## Public interfaces

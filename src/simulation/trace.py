@@ -27,6 +27,25 @@ EVENT_CATEGORIES = {
     "MANEUVER_FAILED": "failure",
     "TRAJECTORY_REPROPAGATED": "state",
     "RESOURCE_UPDATED": "resource",
+    "CYCLE_STARTED": "experiment",
+    "RISK_CREATED": "risk",
+    "RISK_UPDATED": "risk",
+    "RISK_CLOSED": "risk",
+    "RISK_EXPIRED": "risk",
+    "RISK_UNRESOLVED": "risk",
+    "AUCTION_CREATED": "auction",
+    "AUCTION_ANNOUNCED": "auction",
+    "AUCTION_BID_CREATED": "auction",
+    "AUCTION_BID_RECEIVED": "auction",
+    "AUCTION_WINNER_SELECTED": "auction",
+    "AUCTION_AWARD_SENT": "auction",
+    "AUCTION_AWARD_RECEIVED": "auction",
+    "AUCTION_ACKNOWLEDGED": "auction",
+    "AUCTION_TIMED_OUT": "failure",
+    "AUCTION_NO_VALID_BID": "failure",
+    "PROTOCOL_RESOURCE_RESERVED": "resource",
+    "PROTOCOL_RESOURCE_RELEASED": "resource",
+    "STATE_SNAPSHOT": "state",
 }
 
 
@@ -46,12 +65,13 @@ class TraceEvent:
 
 
 class SimulationTrace:
-    def __init__(self, run_id, scenario_id, protocol, seed, configuration):
+    def __init__(self, run_id, scenario_id, protocol, seed, configuration, schema_version=TRACE_SCHEMA_VERSION):
         self.run_id = run_id
         self.scenario_id = scenario_id
         self.protocol = protocol
         self.seed = seed
         self.configuration = configuration
+        self.schema_version = schema_version
         self.events = []
         self._sequence = 0
 
@@ -72,7 +92,7 @@ class SimulationTrace:
 
     def to_dict(self):
         return {
-            "trace_schema_version": TRACE_SCHEMA_VERSION,
+            "trace_schema_version": self.schema_version,
             "run_id": self.run_id,
             "scenario_id": self.scenario_id,
             "protocol": self.protocol,

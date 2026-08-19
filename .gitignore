@@ -19,7 +19,12 @@ env/
 
 # Generated results
 results/
+!studies/auction-network-faults/results/
+studies/auction-network-faults/results/*
+!studies/auction-network-faults/results/smoke/
+!studies/auction-network-faults/results/smoke/**
 build/
+dist/
 *.egg-info/
 
 # OS files

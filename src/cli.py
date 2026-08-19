@@ -11,7 +11,7 @@ from src.analysis import AnalysisError, analyze_sweep
 from src.batch import run_sweep
 from src.configuration import ConfigurationError, load_experiment_config
 from src.protocols.registry import available_protocols
-from src.simulation.runner import run_closed_loop_scenario
+from src.simulation.dispatch import run_experiment
 from src.version import __version__
 
 
@@ -76,7 +76,10 @@ def _print_run(summary, directory):
     print(f"Benchmark: {summary['benchmark']}")
     print(f"Scenario / protocol / seed: {summary['scenario']} / {summary['protocol']} / {summary['seed']}")
     print(f"Outcome: {summary['outcome']}")
-    print(f"Safety: {metrics['original_conjunctions']} initial, {metrics['resolved_conjunctions']} resolved, {metrics['unresolved_conjunctions']} unresolved, {metrics['safety_validation_failures']} validator rejection(s)")
+    if summary["benchmark"] == "spacecraft-campaign-v1":
+        print(f"Modeled risk: {metrics['risks_created']} created, {metrics['risks_resolved']} action-resolved, {metrics['risks_closed']} otherwise closed, {metrics['risks_unresolved']} unresolved/expired")
+    else:
+        print(f"Safety: {metrics['original_conjunctions']} initial, {metrics['resolved_conjunctions']} resolved, {metrics['unresolved_conjunctions']} unresolved, {metrics['safety_validation_failures']} validator rejection(s)")
     print(f"Communication: {metrics['messages_sent']} sent, {metrics['messages_delivered']} delivered, {metrics['messages_dropped']} dropped")
     print(f"Maneuvers: {metrics['maneuvers_executed']} executed, {metrics['total_delta_v_used_km_per_step']} km/step delta-v proxy")
     print(f"Artifacts: {directory}")
@@ -84,7 +87,7 @@ def _print_run(summary, directory):
 
 def _run(args):
     config = load_experiment_config(args.config, overrides=_overrides(args))
-    result = run_closed_loop_scenario(config.scenario, config.protocol)
+    result = run_experiment(config)
     directory, summary = write_run_artifacts(config, result)
     _print_run(summary, directory)
 
@@ -96,7 +99,7 @@ def _compare(args):
     output_directory = None
     for name in dict.fromkeys(args.protocol):
         config = load_experiment_config(args.config, overrides={"protocol.name": name})
-        result = run_closed_loop_scenario(config.scenario, config.protocol)
+        result = run_experiment(config)
         directory, summary = write_run_artifacts(config, result)
         output_directory = config.output_directory / f"{Path(args.config).stem}-comparison"
         records.append({"run_id": summary["run_id"], "protocol": name, **summary["metrics"]})

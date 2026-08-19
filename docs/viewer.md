@@ -1,5 +1,7 @@
 # Experiment viewer
 
+Artifact schema v3 campaign runs use the same viewer. Auction and risk-lifecycle events appear in the causal timeline; message status includes late delivery; cycle `STATE_SNAPSHOT` payloads expose truth, resources, and actor-known risk/trajectory IDs. The viewer shows recorded bid factors and tie-break evidence but invents no missing explanation.
+
 The Themis viewer is a read-only visual debugger for completed experiments. It consumes the same resolved configuration, summary, metrics, metadata, and event trace written by `themis run`. It contains no simulation engine and cannot alter a scientific result.
 
 ## Launching

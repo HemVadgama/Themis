@@ -11,7 +11,7 @@ import tomllib
 from src.simulation.trace import EVENT_CATEGORIES
 
 
-SUPPORTED_ARTIFACT_SCHEMA_VERSION = 2
+SUPPORTED_ARTIFACT_SCHEMA_VERSION = 3
 
 
 class ViewerArtifactError(ValueError):
@@ -42,6 +42,25 @@ EVENT_TITLES = {
     "MANEUVER_FAILED": "Action execution failed",
     "TRAJECTORY_REPROPAGATED": "Physical trajectory updated",
     "RESOURCE_UPDATED": "Resource state updated",
+    "CYCLE_STARTED": "Campaign cycle started",
+    "RISK_CREATED": "Risk created",
+    "RISK_UPDATED": "Persistent risk updated",
+    "RISK_CLOSED": "Risk closed",
+    "RISK_EXPIRED": "Risk deadline expired",
+    "RISK_UNRESOLVED": "Risk unresolved at campaign end",
+    "AUCTION_CREATED": "Auction created",
+    "AUCTION_ANNOUNCED": "Auction announced",
+    "AUCTION_BID_CREATED": "Bid created",
+    "AUCTION_BID_RECEIVED": "Bid received",
+    "AUCTION_WINNER_SELECTED": "Auction winner selected",
+    "AUCTION_AWARD_SENT": "Auction award sent",
+    "AUCTION_AWARD_RECEIVED": "Auction award received",
+    "AUCTION_ACKNOWLEDGED": "Auction acknowledged",
+    "AUCTION_TIMED_OUT": "Auction timed out",
+    "AUCTION_NO_VALID_BID": "Auction had no valid bid",
+    "PROTOCOL_RESOURCE_RESERVED": "Protocol resource reserved",
+    "PROTOCOL_RESOURCE_RELEASED": "Protocol resource released",
+    "STATE_SNAPSHOT": "Campaign state snapshot",
 }
 
 
@@ -82,7 +101,7 @@ def _reference_values(event):
 
 
 def normalize_events(raw_events):
-    """Normalize schema-v1/v2 events and construct deterministic causal links."""
+    """Normalize schema-v1/v2/v3 events and construct deterministic causal links."""
     events = []
     pending_messages = defaultdict(deque)
     latest_maneuver = None

@@ -18,7 +18,10 @@ The core closed-loop testbed has no third-party runtime dependency. From a packa
 themis --help
 themis run --help
 themis run examples/basic.toml
+themis run examples/campaign.toml
 ```
+
+The basic example exercises the backward-compatible one-decision benchmark. The campaign example exercises persistent multi-cycle state and the fault-aware auction. Use `themis compare examples/campaign.toml --protocol centralized --protocol greedy --protocol auction` to run all campaign baselines against identical configured truth and seed.
 
 Copy the printed artifact path. `summary.json` is the quickest machine-readable answer, `metrics.csv` imports directly into analysis tools, and `events.jsonl` explains the lifecycle in order. Inspect it with `themis replay results/<run-id>`.
 
@@ -30,7 +33,7 @@ themis view results/<run-id>
 
 The [viewer guide](viewer.md) explains timeline navigation, agent-local knowledge, communication events, comparisons, and sweep exploration.
 
-For a quantitative sweep, include repeated seeds and run `themis analyze results/<name>-sweep`. Read the [researcher guide](researcher-guide.md) and [methodology](methodology.md) before interpreting intervals.
+For a quantitative sweep, include repeated seeds and run `themis analyze results/<name>-sweep`. To reproduce the checked-in campaign smoke study, run `python studies/auction-network-faults/study.py all --profile smoke` from the repository root. Read the [researcher guide](researcher-guide.md) and [methodology](methodology.md) before interpreting intervals.
 
 ## Modify and reproduce
 

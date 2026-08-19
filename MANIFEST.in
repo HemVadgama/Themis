@@ -5,3 +5,7 @@ recursive-include docs *.md *.png
 recursive-include examples *.md *.toml
 recursive-include tests *.py *.js
 recursive-include themis/schemas *.json
+include studies/auction-network-faults/README.md
+include studies/auction-network-faults/study.py
+recursive-include studies/auction-network-faults/configs *.toml
+recursive-include studies/auction-network-faults/results/smoke *.json *.csv *.svg *.md

@@ -1,5 +1,7 @@
 # Experiments and batch runs
 
+For a complete multi-cycle protocol study, use `studies/auction-network-faults/`. Its smoke and publication grids are ordinary resumable sweeps; raw run rows stay paired by seed and analysis remains downstream of immutable artifacts.
+
 Run one configuration with `themis run CONFIG`. The run ID combines the experiment name, protocol, seed, and a SHA-256 prefix of the resolved configuration. Repeating an identical experiment therefore addresses the same run directory.
 
 `themis compare CONFIG --protocol centralized --protocol greedy` runs identical initial conditions under each listed protocol and writes `comparison.csv` and `comparison.json` alongside the individual run directories.

@@ -6,7 +6,7 @@ from pathlib import Path
 import tomllib
 
 from src.protocols.registry import available_protocols
-from src.simulation.scenario import ScenarioConfig, load_scenario
+from src.simulation.scenario import ScenarioConfig, campaign_scale_states, load_scenario
 
 
 class ConfigurationError(ValueError):
@@ -26,7 +26,7 @@ class ExperimentConfiguration:
 
     def resolved_dict(self):
         scenario = self.scenario
-        return {
+        resolved = {
             "experiment": {"name": self.name, "seed": self.seed, "metadata": self.metadata},
             "benchmark": {"name": self.benchmark},
             "scenario": {
@@ -63,15 +63,25 @@ class ExperimentConfiguration:
             },
             "output": {"directory": str(self.output_directory)},
         }
+        if self.benchmark == "spacecraft-campaign-v1":
+            resolved["auction"] = {
+                "maneuver_cost_weight": scenario.auction_maneuver_cost_weight,
+                "mission_priority_weight": scenario.auction_mission_priority_weight,
+                "fuel_scarcity_weight": scenario.auction_fuel_scarcity_weight,
+                "risk_reduction_weight": scenario.auction_risk_reduction_weight,
+                "deadline_slack_weight": scenario.auction_deadline_slack_weight,
+            }
+        return resolved
 
 
-_TOP_LEVEL = {"experiment", "benchmark", "scenario", "network", "protocol", "safety", "maneuver", "execution", "output"}
+_TOP_LEVEL = {"experiment", "benchmark", "scenario", "network", "protocol", "auction", "safety", "maneuver", "execution", "output"}
 _FIELDS = {
     "experiment": {"name", "seed", "metadata"},
     "benchmark": {"name"},
     "scenario": {"preset", "name", "agent_count", "duration_steps", "decision_deadline_steps", "risk_reassessment_horizon_steps", "initial_states", "mission_priorities", "fuel_budgets"},
     "network": {"latency_steps", "packet_loss_rate", "bandwidth_limit_per_agent"},
     "protocol": {"name"},
+    "auction": {"maneuver_cost_weight", "mission_priority_weight", "fuel_scarcity_weight", "risk_reduction_weight", "deadline_slack_weight"},
     "safety": {"conjunction_threshold_km", "maneuver_threshold_km", "secondary_conjunction_threshold_km", "allow_secondary_risk"},
     "maneuver": {"min_delta_v_km_per_step", "max_delta_v_km_per_step", "default_fuel_budget"},
     "execution": {"failure_rate", "magnitude_error_fraction"},
@@ -182,6 +192,7 @@ def load_experiment_config(path, overrides=None):
     scenario_values = _table(data, "scenario")
     network = _table(data, "network")
     protocol_values = _table(data, "protocol")
+    auction = _table(data, "auction")
     safety = _table(data, "safety")
     maneuver = _table(data, "maneuver")
     execution = _table(data, "execution")
@@ -207,12 +218,18 @@ def load_experiment_config(path, overrides=None):
         raise ConfigurationError("Invalid scenario.name: expected a non-empty string.")
     scenario.seed = seed
     benchmark = benchmark_values.get("name", "spacecraft-coordination-v1")
-    if benchmark != "spacecraft-coordination-v1":
+    if benchmark not in {"spacecraft-coordination-v1", "spacecraft-campaign-v1"}:
         raise ConfigurationError(
             "Unsupported benchmark "
-            f"'{benchmark}'. This release implements spacecraft-coordination-v1; "
-            "see docs/benchmarks.md for the benchmark adapter roadmap."
+            f"'{benchmark}'. Choose spacecraft-coordination-v1 or spacecraft-campaign-v1."
         )
+    if benchmark == "spacecraft-campaign-v1" and preset != "campaign_reference":
+        raise ConfigurationError(
+            "spacecraft-campaign-v1 currently requires scenario.preset = 'campaign_reference'; "
+            "explicit scenario overrides remain supported."
+        )
+    if benchmark == "spacecraft-coordination-v1" and auction:
+        raise ConfigurationError("[auction] is available only for spacecraft-campaign-v1.")
 
     mapping = {
         "agent_count": (scenario_values, "agent_count"),
@@ -231,6 +248,11 @@ def load_experiment_config(path, overrides=None):
         "default_fuel_budget": (maneuver, "default_fuel_budget"),
         "execution_failure_rate": (execution, "failure_rate"),
         "execution_magnitude_error_fraction": (execution, "magnitude_error_fraction"),
+        "auction_maneuver_cost_weight": (auction, "maneuver_cost_weight"),
+        "auction_mission_priority_weight": (auction, "mission_priority_weight"),
+        "auction_fuel_scarcity_weight": (auction, "fuel_scarcity_weight"),
+        "auction_risk_reduction_weight": (auction, "risk_reduction_weight"),
+        "auction_deadline_slack_weight": (auction, "deadline_slack_weight"),
     }
     for attribute, (table, key) in mapping.items():
         if key in table:
@@ -238,6 +260,18 @@ def load_experiment_config(path, overrides=None):
     for key in ("initial_states", "mission_priorities", "fuel_budgets"):
         if key in scenario_values:
             setattr(scenario, key, scenario_values[key])
+    if (
+        benchmark == "spacecraft-campaign-v1"
+        and "agent_count" in scenario_values
+        and "initial_states" not in scenario_values
+        and scenario.agent_count != 4
+    ):
+        scenario.initial_states = campaign_scale_states(scenario.agent_count)
+        scenario.mission_priorities = {
+            state["agent_id"]: 1 + index % 5
+            for index, state in enumerate(scenario.initial_states)
+        }
+        scenario.fuel_budgets = {}
 
     for attribute in ("agent_count", "duration_steps", "decision_deadline_steps", "risk_reassessment_horizon_steps", "network_latency_steps"):
         _integer(getattr(scenario, attribute), attribute.replace("network_", "network."), minimum=1 if attribute in {"agent_count", "duration_steps", "risk_reassessment_horizon_steps"} else 0)
@@ -248,6 +282,14 @@ def load_experiment_config(path, overrides=None):
         _number(getattr(scenario, attribute), attribute, minimum=0.0)
     _number(scenario.execution_failure_rate, "execution.failure_rate", minimum=0.0, maximum=1.0)
     _number(scenario.execution_magnitude_error_fraction, "execution.magnitude_error_fraction", minimum=0.0)
+    for attribute in (
+        "auction_maneuver_cost_weight",
+        "auction_mission_priority_weight",
+        "auction_fuel_scarcity_weight",
+        "auction_risk_reduction_weight",
+        "auction_deadline_slack_weight",
+    ):
+        _number(getattr(scenario, attribute), f"auction.{attribute.removeprefix('auction_')}", minimum=0.0)
     if scenario.min_delta_v_km_per_step > scenario.max_delta_v_km_per_step:
         raise ConfigurationError("Invalid maneuver configuration: min_delta_v_km_per_step must not exceed max_delta_v_km_per_step.")
     if not isinstance(scenario.allow_secondary_risk, bool):
@@ -259,6 +301,8 @@ def load_experiment_config(path, overrides=None):
     protocol = protocol_values.get("name", "centralized")
     if protocol not in available_protocols():
         raise ConfigurationError(f"Unsupported protocol '{protocol}'. Choose one of: {', '.join(available_protocols())}.")
+    if benchmark == "spacecraft-coordination-v1" and protocol == "auction":
+        raise ConfigurationError("The auction protocol requires benchmark.name = 'spacecraft-campaign-v1'.")
     directory = output.get("directory", "results")
     if not isinstance(directory, str) or not directory.strip():
         raise ConfigurationError("Invalid output.directory: expected a non-empty path string.")
